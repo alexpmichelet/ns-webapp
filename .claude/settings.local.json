@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": ["Bash(xargs ls:*)", "Bash(pnpm add:*)", "Bash(pnpm run generate:types:*)"],
+    "deny": [],
+    "ask": []
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd \"$CLAUDE_PROJECT_DIR\" && (npx tsc --noEmit 2>&1 && pnpm lint 2>&1) || { echo 'Validation failed. Please fix the errors above.'; exit 2; }"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -63,20 +63,36 @@ export type SupportedTimezones =
 
 export interface Config {
   auth: {
-    users: UserAuthOperations;
+    'payload-users': PayloadUserAuthOperations;
   };
   blocks: {};
   collections: {
-    users: User;
-    media: Media;
+    'payload-users': PayloadUser;
+    'payload-users-sessions': PayloadUsersSession;
+    'payload-users-accounts': PayloadUsersAccount;
+    'payload-verifications': PayloadVerification;
+    'admin-invitations': AdminInvitation;
+    'payload-media': PayloadMedia;
+    'payload-tickets': PayloadTicket;
+    'payload-time-logs': PayloadTimeLog;
+    'payload-invoices': PayloadInvoice;
+    'payload-notifications': PayloadNotification;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
     'payload-migrations': PayloadMigration;
   };
   collectionsJoins: {};
   collectionsSelect: {
-    users: UsersSelect<false> | UsersSelect<true>;
-    media: MediaSelect<false> | MediaSelect<true>;
+    'payload-users': PayloadUsersSelect<false> | PayloadUsersSelect<true>;
+    'payload-users-sessions': PayloadUsersSessionsSelect<false> | PayloadUsersSessionsSelect<true>;
+    'payload-users-accounts': PayloadUsersAccountsSelect<false> | PayloadUsersAccountsSelect<true>;
+    'payload-verifications': PayloadVerificationsSelect<false> | PayloadVerificationsSelect<true>;
+    'admin-invitations': AdminInvitationsSelect<false> | AdminInvitationsSelect<true>;
+    'payload-media': PayloadMediaSelect<false> | PayloadMediaSelect<true>;
+    'payload-tickets': PayloadTicketsSelect<false> | PayloadTicketsSelect<true>;
+    'payload-time-logs': PayloadTimeLogsSelect<false> | PayloadTimeLogsSelect<true>;
+    'payload-invoices': PayloadInvoicesSelect<false> | PayloadInvoicesSelect<true>;
+    'payload-notifications': PayloadNotificationsSelect<false> | PayloadNotificationsSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
     'payload-migrations': PayloadMigrationsSelect<false> | PayloadMigrationsSelect<true>;
@@ -87,15 +103,15 @@ export interface Config {
   globals: {};
   globalsSelect: {};
   locale: null;
-  user: User & {
-    collection: 'users';
+  user: PayloadUser & {
+    collection: 'payload-users';
   };
   jobs: {
     tasks: unknown;
     workflows: unknown;
   };
 }
-export interface UserAuthOperations {
+export interface PayloadUserAuthOperations {
   forgotPassword: {
     email: string;
     password: string;
@@ -115,33 +131,177 @@ export interface UserAuthOperations {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "users".
+ * via the `definition` "payload-users".
  */
-export interface User {
+export interface PayloadUser {
   id: string;
-  updatedAt: string;
-  createdAt: string;
+  company?: string | null;
+  /**
+   * Rate in USD per hour
+   */
+  hourlyRate?: number | null;
+  stripeCustomerId?: string | null;
+  /**
+   * Users chosen display name
+   */
+  name: string;
+  /**
+   * The email of the user
+   */
   email: string;
-  resetPasswordToken?: string | null;
-  resetPasswordExpiration?: string | null;
-  salt?: string | null;
-  hash?: string | null;
-  loginAttempts?: number | null;
-  lockUntil?: string | null;
-  sessions?:
-    | {
-        id: string;
-        createdAt?: string | null;
-        expiresAt: string;
-      }[]
-    | null;
+  /**
+   * Whether the email of the user has been verified
+   */
+  emailVerified: boolean;
+  /**
+   * The image of the user
+   */
+  image?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  /**
+   * The role of the user
+   */
+  role?: string | null;
+  /**
+   * Whether the user is banned from the platform
+   */
+  banned?: boolean | null;
+  /**
+   * The reason for the ban
+   */
+  banReason?: string | null;
+  /**
+   * The date and time when the ban will expire
+   */
+  banExpires?: string | null;
+}
+/**
+ * Sessions are active sessions for users. They are used to authenticate users with a session token
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payload-users-sessions".
+ */
+export interface PayloadUsersSession {
+  id: string;
+  /**
+   * The date and time when the session will expire
+   */
+  expiresAt: string;
+  /**
+   * The unique session token
+   */
+  token: string;
+  createdAt: string;
+  updatedAt: string;
+  /**
+   * The IP address of the device
+   */
+  ipAddress?: string | null;
+  /**
+   * The user agent information of the device
+   */
+  userAgent?: string | null;
+  /**
+   * The user that the session belongs to
+   */
+  user: string | PayloadUser;
+  /**
+   * The admin who is impersonating this session
+   */
+  impersonatedBy?: string | null;
+}
+/**
+ * Accounts are used to store user accounts for authentication providers
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payload-users-accounts".
+ */
+export interface PayloadUsersAccount {
+  id: string;
+  /**
+   * The id of the account as provided by the SSO or equal to userId for credential accounts
+   */
+  accountId: string;
+  /**
+   * The id of the provider as provided by the SSO
+   */
+  providerId: string;
+  /**
+   * The user that the account belongs to
+   */
+  user: string | PayloadUser;
+  /**
+   * The access token of the account. Returned by the provider
+   */
+  accessToken?: string | null;
+  /**
+   * The refresh token of the account. Returned by the provider
+   */
+  refreshToken?: string | null;
+  /**
+   * The id token for the account. Returned by the provider
+   */
+  idToken?: string | null;
+  /**
+   * The date and time when the access token will expire
+   */
+  accessTokenExpiresAt?: string | null;
+  /**
+   * The date and time when the refresh token will expire
+   */
+  refreshTokenExpiresAt?: string | null;
+  /**
+   * The scope of the account. Returned by the provider
+   */
+  scope?: string | null;
+  /**
+   * The hashed password of the account. Mainly used for email and password authentication
+   */
   password?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+/**
+ * Verifications are used to verify authentication requests
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payload-verifications".
+ */
+export interface PayloadVerification {
+  id: string;
+  /**
+   * The identifier of the verification request
+   */
+  identifier: string;
+  /**
+   * The value to be verified
+   */
+  value: string;
+  /**
+   * The date and time when the verification request will expire
+   */
+  expiresAt: string;
+  createdAt: string;
+  updatedAt: string;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "media".
+ * via the `definition` "admin-invitations".
  */
-export interface Media {
+export interface AdminInvitation {
+  id: string;
+  role: 'admin' | 'user';
+  token: string;
+  url?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payload-media".
+ */
+export interface PayloadMedia {
   id: string;
   alt: string;
   updatedAt: string;
@@ -158,23 +318,352 @@ export interface Media {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payload-tickets".
+ */
+export interface PayloadTicket {
+  id: string;
+  title: string;
+  description: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  };
+  client: string | PayloadUser;
+  status:
+    | 'pending_review'
+    | 'in_progress'
+    | 'blocked'
+    | 'pending_client_review'
+    | 'revision_requested'
+    | 'approved'
+    | 'invoiced'
+    | 'paid';
+  priority: 'low' | 'medium' | 'high' | 'urgent';
+  /**
+   * Estimated hours to complete
+   */
+  estimatedHours: number;
+  /**
+   * Total hours logged (auto-calculated)
+   */
+  actualHours?: number | null;
+  /**
+   * Require client approval before invoicing
+   */
+  requiresClientApproval?: boolean | null;
+  /**
+   * Auto-approve if client does not respond by this date
+   */
+  approvalDeadline?: string | null;
+  /**
+   * Hours to wait before auto-approval
+   */
+  autoApprovalHours?: number | null;
+  /**
+   * Number of revisions requested
+   */
+  revisionCount?: number | null;
+  /**
+   * Maximum allowed revisions before extra charges
+   */
+  maxRevisions?: number | null;
+  tags?:
+    | {
+        tag?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  attachments?: (string | PayloadMedia)[] | null;
+  /**
+   * Why is this ticket blocked?
+   */
+  blockedReason?: string | null;
+  completedAt?: string | null;
+  invoice?: (string | null) | PayloadInvoice;
+  /**
+   * Additional ticket metadata
+   */
+  metadata?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payload-invoices".
+ */
+export interface PayloadInvoice {
+  id: string;
+  invoiceNumber: string;
+  client: string | PayloadUser;
+  status: 'draft' | 'pending' | 'paid' | 'overdue' | 'cancelled';
+  /**
+   * Tickets included in this invoice
+   */
+  tickets: (string | PayloadTicket)[];
+  /**
+   * Time logs included (auto-populated from tickets)
+   */
+  timeLogs?: (string | PayloadTimeLog)[] | null;
+  lineItems?:
+    | {
+        description: string;
+        hours: number;
+        rate: number;
+        amount: number;
+        id?: string | null;
+      }[]
+    | null;
+  subtotal: number;
+  /**
+   * Tax rate as percentage (e.g., 10 for 10%)
+   */
+  taxRate?: number | null;
+  taxAmount: number;
+  totalAmount: number;
+  issueDate: string;
+  dueDate: string;
+  paidAt?: string | null;
+  /**
+   * Internal notes (not shown to client)
+   */
+  notes?: string | null;
+  /**
+   * Payment terms shown on invoice
+   */
+  terms?: string | null;
+  stripeInvoiceId?: string | null;
+  stripePaymentIntentId?: string | null;
+  /**
+   * Stripe payment link sent to client
+   */
+  paymentUrl?: string | null;
+  /**
+   * URL to generated PDF invoice
+   */
+  pdfUrl?: string | null;
+  /**
+   * Additional invoice metadata
+   */
+  metadata?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payload-time-logs".
+ */
+export interface PayloadTimeLog {
+  id: string;
+  ticket: string | PayloadTicket;
+  user: string | PayloadUser;
+  description: string;
+  date: string;
+  /**
+   * When work started
+   */
+  startTime?: string | null;
+  /**
+   * When work ended
+   */
+  endTime?: string | null;
+  /**
+   * Hours worked (minimum 0.25, rounds to nearest 0.25)
+   */
+  hours: number;
+  isBillable: boolean;
+  /**
+   * Rate at time of logging (from client)
+   */
+  hourlyRate: number;
+  /**
+   * Calculated: hours × hourlyRate
+   */
+  totalAmount: number;
+  invoice?: (string | null) | PayloadInvoice;
+  isInvoiced?: boolean | null;
+  tags?:
+    | {
+        tag?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Additional time log metadata
+   */
+  metadata?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payload-notifications".
+ */
+export interface PayloadNotification {
+  id: string;
+  recipient: string | PayloadUser;
+  type:
+    | 'ticket_created'
+    | 'ticket_status_changed'
+    | 'ticket_approved'
+    | 'ticket_revision_requested'
+    | 'time_logged'
+    | 'invoice_created'
+    | 'invoice_due'
+    | 'invoice_overdue'
+    | 'payment_received';
+  channel: 'email' | 'in_app' | 'both';
+  subject: string;
+  message: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  };
+  /**
+   * Plain text version for email
+   */
+  plainTextMessage?: string | null;
+  status: 'pending' | 'sent' | 'failed' | 'read';
+  sentAt?: string | null;
+  readAt?: string | null;
+  /**
+   * Related ticket if applicable
+   */
+  relatedTicket?: (string | null) | PayloadTicket;
+  /**
+   * Related invoice if applicable
+   */
+  relatedInvoice?: (string | null) | PayloadInvoice;
+  /**
+   * Related time log if applicable
+   */
+  relatedTimeLog?: (string | null) | PayloadTimeLog;
+  /**
+   * Additional data for email template
+   */
+  emailData?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * Error message if sending failed
+   */
+  error?: string | null;
+  retryCount?: number | null;
+  /**
+   * Additional notification metadata
+   */
+  metadata?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-locked-documents".
  */
 export interface PayloadLockedDocument {
   id: string;
   document?:
     | ({
-        relationTo: 'users';
-        value: string | User;
+        relationTo: 'payload-users';
+        value: string | PayloadUser;
       } | null)
     | ({
-        relationTo: 'media';
-        value: string | Media;
+        relationTo: 'payload-users-sessions';
+        value: string | PayloadUsersSession;
+      } | null)
+    | ({
+        relationTo: 'payload-users-accounts';
+        value: string | PayloadUsersAccount;
+      } | null)
+    | ({
+        relationTo: 'payload-verifications';
+        value: string | PayloadVerification;
+      } | null)
+    | ({
+        relationTo: 'admin-invitations';
+        value: string | AdminInvitation;
+      } | null)
+    | ({
+        relationTo: 'payload-media';
+        value: string | PayloadMedia;
+      } | null)
+    | ({
+        relationTo: 'payload-tickets';
+        value: string | PayloadTicket;
+      } | null)
+    | ({
+        relationTo: 'payload-time-logs';
+        value: string | PayloadTimeLog;
+      } | null)
+    | ({
+        relationTo: 'payload-invoices';
+        value: string | PayloadInvoice;
+      } | null)
+    | ({
+        relationTo: 'payload-notifications';
+        value: string | PayloadNotification;
       } | null);
   globalSlug?: string | null;
   user: {
-    relationTo: 'users';
-    value: string | User;
+    relationTo: 'payload-users';
+    value: string | PayloadUser;
   };
   updatedAt: string;
   createdAt: string;
@@ -186,8 +675,8 @@ export interface PayloadLockedDocument {
 export interface PayloadPreference {
   id: string;
   user: {
-    relationTo: 'users';
-    value: string | User;
+    relationTo: 'payload-users';
+    value: string | PayloadUser;
   };
   key?: string | null;
   value?:
@@ -215,31 +704,82 @@ export interface PayloadMigration {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "users_select".
+ * via the `definition` "payload-users_select".
  */
-export interface UsersSelect<T extends boolean = true> {
-  updatedAt?: T;
-  createdAt?: T;
+export interface PayloadUsersSelect<T extends boolean = true> {
+  company?: T;
+  hourlyRate?: T;
+  stripeCustomerId?: T;
+  name?: T;
   email?: T;
-  resetPasswordToken?: T;
-  resetPasswordExpiration?: T;
-  salt?: T;
-  hash?: T;
-  loginAttempts?: T;
-  lockUntil?: T;
-  sessions?:
-    | T
-    | {
-        id?: T;
-        createdAt?: T;
-        expiresAt?: T;
-      };
+  emailVerified?: T;
+  image?: T;
+  createdAt?: T;
+  updatedAt?: T;
+  role?: T;
+  banned?: T;
+  banReason?: T;
+  banExpires?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "media_select".
+ * via the `definition` "payload-users-sessions_select".
  */
-export interface MediaSelect<T extends boolean = true> {
+export interface PayloadUsersSessionsSelect<T extends boolean = true> {
+  expiresAt?: T;
+  token?: T;
+  createdAt?: T;
+  updatedAt?: T;
+  ipAddress?: T;
+  userAgent?: T;
+  user?: T;
+  impersonatedBy?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payload-users-accounts_select".
+ */
+export interface PayloadUsersAccountsSelect<T extends boolean = true> {
+  accountId?: T;
+  providerId?: T;
+  user?: T;
+  accessToken?: T;
+  refreshToken?: T;
+  idToken?: T;
+  accessTokenExpiresAt?: T;
+  refreshTokenExpiresAt?: T;
+  scope?: T;
+  password?: T;
+  createdAt?: T;
+  updatedAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payload-verifications_select".
+ */
+export interface PayloadVerificationsSelect<T extends boolean = true> {
+  identifier?: T;
+  value?: T;
+  expiresAt?: T;
+  createdAt?: T;
+  updatedAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "admin-invitations_select".
+ */
+export interface AdminInvitationsSelect<T extends boolean = true> {
+  role?: T;
+  token?: T;
+  url?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payload-media_select".
+ */
+export interface PayloadMediaSelect<T extends boolean = true> {
   alt?: T;
   updatedAt?: T;
   createdAt?: T;
@@ -252,6 +792,124 @@ export interface MediaSelect<T extends boolean = true> {
   height?: T;
   focalX?: T;
   focalY?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payload-tickets_select".
+ */
+export interface PayloadTicketsSelect<T extends boolean = true> {
+  title?: T;
+  description?: T;
+  client?: T;
+  status?: T;
+  priority?: T;
+  estimatedHours?: T;
+  actualHours?: T;
+  requiresClientApproval?: T;
+  approvalDeadline?: T;
+  autoApprovalHours?: T;
+  revisionCount?: T;
+  maxRevisions?: T;
+  tags?:
+    | T
+    | {
+        tag?: T;
+        id?: T;
+      };
+  attachments?: T;
+  blockedReason?: T;
+  completedAt?: T;
+  invoice?: T;
+  metadata?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payload-time-logs_select".
+ */
+export interface PayloadTimeLogsSelect<T extends boolean = true> {
+  ticket?: T;
+  user?: T;
+  description?: T;
+  date?: T;
+  startTime?: T;
+  endTime?: T;
+  hours?: T;
+  isBillable?: T;
+  hourlyRate?: T;
+  totalAmount?: T;
+  invoice?: T;
+  isInvoiced?: T;
+  tags?:
+    | T
+    | {
+        tag?: T;
+        id?: T;
+      };
+  metadata?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payload-invoices_select".
+ */
+export interface PayloadInvoicesSelect<T extends boolean = true> {
+  invoiceNumber?: T;
+  client?: T;
+  status?: T;
+  tickets?: T;
+  timeLogs?: T;
+  lineItems?:
+    | T
+    | {
+        description?: T;
+        hours?: T;
+        rate?: T;
+        amount?: T;
+        id?: T;
+      };
+  subtotal?: T;
+  taxRate?: T;
+  taxAmount?: T;
+  totalAmount?: T;
+  issueDate?: T;
+  dueDate?: T;
+  paidAt?: T;
+  notes?: T;
+  terms?: T;
+  stripeInvoiceId?: T;
+  stripePaymentIntentId?: T;
+  paymentUrl?: T;
+  pdfUrl?: T;
+  metadata?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payload-notifications_select".
+ */
+export interface PayloadNotificationsSelect<T extends boolean = true> {
+  recipient?: T;
+  type?: T;
+  channel?: T;
+  subject?: T;
+  message?: T;
+  plainTextMessage?: T;
+  status?: T;
+  sentAt?: T;
+  readAt?: T;
+  relatedTicket?: T;
+  relatedInvoice?: T;
+  relatedTimeLog?: T;
+  emailData?: T;
+  error?: T;
+  retryCount?: T;
+  metadata?: T;
+  updatedAt?: T;
+  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

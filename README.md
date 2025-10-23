@@ -1,28 +1,68 @@
-# Payload Blank Template
+# Time & Materials Project Management System
 
-This template comes configured with the bare minimum to get started on anything you need.
+A complete Time & Materials project management system with client portal, time tracking, invoicing, and Stripe payments.
 
-## Quick start
+## Features
 
-This template can be deployed directly from our Cloud hosting and it will setup MongoDB and cloud S3 object storage for media.
+- **Client Portal** - Ticket submission, progress tracking, invoice payments
+- **Admin Dashboard** - Kanban board, time tracking with timer, invoice generation
+- **Workflow Management** - 8-state ticket workflow with approvals and revisions
+- **Time Tracking** - Built-in timer, automatic rounding, billable/non-billable tracking
+- **Invoicing** - Auto-generated invoices with Stripe integration
+- **Notifications** - Email and in-app notifications for all events
+- **Access Control** - Role-based permissions (Admin/Client)
 
-## Quick Start - local setup
+## Tech Stack
 
-To spin up this template locally, follow these steps:
+- **Next.js 15** - App Router with Server Actions
+- **Payload CMS v3** - Headless CMS with PostgreSQL
+- **Better Auth** - Authentication with email/password
+- **Stripe** - Payment processing
+- **shadcn/ui** - UI components with Tailwind CSS
+- **TanStack Query** - Data fetching and caching
 
-### Clone
+## Quick Start
 
-After you click the `Deploy` button above, you'll want to have standalone copy of this repo on your machine. If you've already cloned this repo, skip to [Development](#development).
+1. **Install dependencies**
+   ```bash
+   pnpm install
+   ```
 
-### Development
+2. **Setup environment**
+   ```bash
+   cp .env.example .env
+   # Edit .env with your configuration
+   ```
 
-1. First [clone the repo](#clone) if you have not done so already
-2. `cd my-project && cp .env.example .env` to copy the example environment variables. You'll need to add the `MONGODB_URI` from your Cloud project to your `.env` if you want to use S3 storage and the MongoDB database that was created for you.
+3. **Setup database**
+   ```bash
+   # Local PostgreSQL
+   createdb ns-webapp
 
-3. `pnpm install && pnpm dev` to install dependencies and start the dev server
-4. open `http://localhost:3000` to open the app in your browser
+   # Or use the provided connection string for Supabase
+   ```
 
-That's it! Changes made in `./src` will be reflected in your app. Follow the on-screen instructions to login and create your first admin user. Then check out [Production](#production) once you're ready to build and serve your app, and [Deployment](#deployment) when you're ready to go live.
+4. **Generate types**
+   ```bash
+   pnpm run generate:types
+   ```
+
+5. **Start development server**
+   ```bash
+   pnpm dev
+   ```
+
+6. **Access the application**
+   - Frontend: http://localhost:3000
+   - Admin Panel: http://localhost:3000/admin
+
+## Documentation
+
+- **[SETUP_GUIDE.md](SETUP_GUIDE.md)** - Complete setup and deployment guide
+- **[docs/PROJECT_ARCHITECTURE.md](docs/PROJECT_ARCHITECTURE.md)** - System architecture
+- **[docs/DATA_MODELS.md](docs/DATA_MODELS.md)** - Database schemas
+- **[docs/WORKFLOW_LOGIC.md](docs/WORKFLOW_LOGIC.md)** - Business rules and workflows
+- **[docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md)** - Development roadmap
 
 #### Docker (Optional)
 
