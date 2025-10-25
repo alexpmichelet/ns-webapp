@@ -77,7 +77,9 @@ export default function TicketsPage() {
       {tickets.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center">
-            <p className="text-muted-foreground mb-4">You haven't submitted any tickets yet.</p>
+            <p className="text-muted-foreground mb-4">
+              You haven&apos;t submitted any tickets yet.
+            </p>
             <Link href="/tickets/new">
               <Button>Submit Your First Ticket</Button>
             </Link>

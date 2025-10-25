@@ -15,7 +15,7 @@ export async function createInvoice(data: {
   try {
     // Verify all tickets are approved
     const tickets = await payload.find({
-      collection: 'tickets',
+      collection: 'payload-tickets',
       where: {
         id: {
           in: data.tickets,
@@ -24,7 +24,7 @@ export async function createInvoice(data: {
     })
 
     const unapprovedTickets = tickets.docs.filter(
-      (t: import('@/payload-types').Ticket) => t.status !== 'approved',
+      (t: import('@/payload-types').PayloadTicket) => t.status !== 'done',
     )
     if (unapprovedTickets.length > 0) {
       return {
@@ -101,22 +101,12 @@ export async function sendInvoice(invoiceId: string) {
     const clientId = typeof invoice.client === 'string' ? invoice.client : invoice.client.id
 
     await payload.create({
-      collection: 'notifications',
+      collection: 'payload-notifications',
       data: {
         recipient: clientId,
-        type: 'invoice_created',
-        channel: 'both',
-        subject: `Invoice ${invoice.invoiceNumber} Ready`,
+        type: 'estimate_ready',
+        title: `Invoice ${invoice.invoiceNumber} Ready`,
         message: `Your invoice ${invoice.invoiceNumber} for $${invoice.totalAmount.toFixed(2)} is ready. Please review and pay by ${new Date(invoice.dueDate).toLocaleDateString()}.`,
-        plainTextMessage: `Your invoice ${invoice.invoiceNumber} for $${invoice.totalAmount.toFixed(2)} is ready. Please review and pay by ${new Date(invoice.dueDate).toLocaleDateString()}.`,
-        relatedInvoice: invoiceId,
-        emailData: {
-          invoiceNumber: invoice.invoiceNumber,
-          totalAmount: invoice.totalAmount,
-          dueDate: invoice.dueDate,
-          paymentUrl: invoice.paymentUrl,
-          pdfUrl: invoice.pdfUrl,
-        },
       },
     })
 
@@ -233,24 +223,16 @@ export async function checkOverdueInvoices() {
         },
       })
 
-      // Send overdue notification
+      // Send overdue notification (mapped to allowed notification type)
       const clientId = typeof invoice.client === 'string' ? invoice.client : invoice.client.id
 
       await payload.create({
-        collection: 'notifications',
+        collection: 'payload-notifications',
         data: {
           recipient: clientId,
-          type: 'invoice_overdue',
-          channel: 'both',
-          subject: `Invoice ${invoice.invoiceNumber} Overdue`,
+          type: 'auto_approval_warning',
+          title: `Invoice ${invoice.invoiceNumber} Overdue`,
           message: `Your invoice ${invoice.invoiceNumber} for $${invoice.totalAmount.toFixed(2)} is now overdue. Please pay as soon as possible.`,
-          plainTextMessage: `Your invoice ${invoice.invoiceNumber} for $${invoice.totalAmount.toFixed(2)} is now overdue. Please pay as soon as possible.`,
-          relatedInvoice: invoice.id,
-          emailData: {
-            invoiceNumber: invoice.invoiceNumber,
-            totalAmount: invoice.totalAmount,
-            paymentUrl: invoice.paymentUrl,
-          },
         },
       })
     }

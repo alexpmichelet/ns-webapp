@@ -7,32 +7,29 @@ import type { TicketStatus } from '@/collections/Tickets'
 export async function createTicket(data: {
   title: string
   description: any
+  project: string
   estimatedHours: number
-  priority?: 'low' | 'medium' | 'high' | 'urgent'
+  priority?: 'low' | 'medium' | 'high' | 'absolute'
   attachments?: string[]
-  tags?: { tag: string }[]
 }) {
   try {
     const ticket = await payload.create({
-      collection: 'tickets',
+      collection: 'payload-tickets',
       data: {
         ...data,
-        requiresClientApproval: true,
-        maxRevisions: 2,
       },
     })
 
     // Create notification for admin
     await payload.create({
-      collection: 'notifications',
+      collection: 'payload-notifications',
       data: {
-        recipient: process.env.ADMIN_USER_ID || '', // Set admin user ID
+        recipient: process.env.ADMIN_USER_ID || '',
         type: 'ticket_created',
-        channel: 'both',
-        subject: 'New Ticket Created',
+        title: 'New Ticket Created',
         message: `A new ticket "${data.title}" has been created.`,
-        plainTextMessage: `A new ticket "${data.title}" has been created.`,
         relatedTicket: ticket.id,
+        project: data.project,
       },
     })
 
@@ -47,20 +44,19 @@ export async function createTicket(data: {
 export async function updateTicketStatus(ticketId: string, status: TicketStatus) {
   try {
     const ticket = await payload.findByID({
-      collection: 'tickets',
+      collection: 'payload-tickets',
       id: ticketId,
     })
 
     // Validate state transitions based on WORKFLOW_LOGIC.md
     const validTransitions: Record<TicketStatus, TicketStatus[]> = {
-      pending_review: ['in_progress', 'blocked'],
-      in_progress: ['pending_client_review', 'blocked', 'approved'],
-      blocked: ['in_progress', 'pending_review'],
-      pending_client_review: ['approved', 'revision_requested'],
-      revision_requested: ['in_progress'],
-      approved: ['invoiced'],
-      invoiced: ['paid'],
-      paid: [],
+      to_estimate: ['needs_client_review', 'ready_to_develop'],
+      needs_client_review: ['ready_to_develop', 'to_estimate'],
+      ready_to_develop: ['development_in_progress', 'needs_client_review'],
+      development_in_progress: ['ready_to_test', 'needs_client_review'],
+      ready_to_test: ['done', 'development_in_progress'],
+      done: ['paid_closed'],
+      paid_closed: [],
     }
 
     const currentStatus = ticket.status as TicketStatus
@@ -72,25 +68,9 @@ export async function updateTicketStatus(ticketId: string, status: TicketStatus)
     }
 
     const updatedTicket = await payload.update({
-      collection: 'tickets',
+      collection: 'payload-tickets',
       id: ticketId,
       data: { status },
-    })
-
-    // Create notification for client
-    const client = typeof ticket.client === 'string' ? ticket.client : ticket.client.id
-
-    await payload.create({
-      collection: 'notifications',
-      data: {
-        recipient: client,
-        type: 'ticket_status_changed',
-        channel: 'both',
-        subject: 'Ticket Status Updated',
-        message: `Your ticket "${ticket.title}" status has been updated to ${status.replace('_', ' ')}.`,
-        plainTextMessage: `Your ticket "${ticket.title}" status has been updated to ${status.replace('_', ' ')}.`,
-        relatedTicket: ticketId,
-      },
     })
 
     revalidatePath('/tickets')
@@ -105,25 +85,23 @@ export async function updateTicketStatus(ticketId: string, status: TicketStatus)
 export async function approveTicket(ticketId: string) {
   try {
     const ticket = await payload.update({
-      collection: 'tickets',
+      collection: 'payload-tickets',
       id: ticketId,
       data: {
-        status: 'approved',
-        completedAt: new Date().toISOString(),
+        status: 'done',
       },
     })
 
     // Create notification for admin
     await payload.create({
-      collection: 'notifications',
+      collection: 'payload-notifications',
       data: {
         recipient: process.env.ADMIN_USER_ID || '',
         type: 'ticket_approved',
-        channel: 'both',
-        subject: 'Ticket Approved',
+        title: 'Ticket Approved',
         message: `Ticket "${ticket.title}" has been approved by the client.`,
-        plainTextMessage: `Ticket "${ticket.title}" has been approved by the client.`,
         relatedTicket: ticketId,
+        project: typeof ticket.project === 'string' ? ticket.project : ticket.project?.id,
       },
     })
 
@@ -139,12 +117,12 @@ export async function approveTicket(ticketId: string) {
 export async function requestRevision(ticketId: string, reason: string) {
   try {
     const ticket = await payload.findByID({
-      collection: 'tickets',
+      collection: 'payload-tickets',
       id: ticketId,
     })
 
     // Check if max revisions exceeded
-    if ((ticket.revisionCount || 0) >= (ticket.maxRevisions || 2)) {
+    if ((ticket.revisionCount || 0) >= (ticket.maxRevisions || 3)) {
       return {
         success: false,
         error: 'Maximum revisions exceeded. Additional charges may apply.',
@@ -152,24 +130,24 @@ export async function requestRevision(ticketId: string, reason: string) {
     }
 
     const updatedTicket = await payload.update({
-      collection: 'tickets',
+      collection: 'payload-tickets',
       id: ticketId,
       data: {
-        status: 'revision_requested',
+        isRevision: true,
+        revisionCount: (ticket.revisionCount || 0) + 1,
       },
     })
 
     // Create notification for admin
     await payload.create({
-      collection: 'notifications',
+      collection: 'payload-notifications',
       data: {
         recipient: process.env.ADMIN_USER_ID || '',
-        type: 'ticket_revision_requested',
-        channel: 'both',
-        subject: 'Revision Requested',
+        type: 'revision_requested',
+        title: 'Revision Requested',
         message: `Client has requested revisions for ticket "${ticket.title}". Reason: ${reason}`,
-        plainTextMessage: `Client has requested revisions for ticket "${ticket.title}". Reason: ${reason}`,
         relatedTicket: ticketId,
+        project: typeof ticket.project === 'string' ? ticket.project : ticket.project?.id,
       },
     })
 

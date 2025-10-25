@@ -25,7 +25,7 @@ export async function createTimeLog(data: {
 
     // Get ticket and client info for notification
     const ticket = await payload.findByID({
-      collection: 'tickets',
+      collection: 'payload-tickets',
       id: data.ticket,
     })
 
@@ -33,16 +33,13 @@ export async function createTimeLog(data: {
 
     // Create notification for client
     await payload.create({
-      collection: 'notifications',
+      collection: 'payload-notifications',
       data: {
         recipient: clientId,
-        type: 'time_logged',
-        channel: 'in_app',
-        subject: 'Time Logged',
+        type: 'ticket_created',
+        title: 'Time Logged',
         message: `${data.hours} hours logged on ticket "${ticket.title}": ${data.description}`,
-        plainTextMessage: `${data.hours} hours logged on ticket "${ticket.title}": ${data.description}`,
         relatedTicket: data.ticket,
-        relatedTimeLog: timeLog.id,
       },
     })
 
@@ -178,12 +175,15 @@ export async function getTotalHoursByTicket(ticketId: string) {
     })
 
     const totalHours = timeLogs.docs.reduce(
-      (sum: number, log: import('@/payload-types').TimeLog) => sum + (log.hours || 0),
+      (sum: number, log: import('@/payload-types').PayloadTimeLog) => sum + (log.hours || 0),
       0,
     )
     const billableHours = timeLogs.docs
-      .filter((log: import('@/payload-types').TimeLog) => log.isBillable)
-      .reduce((sum: number, log: import('@/payload-types').TimeLog) => sum + (log.hours || 0), 0)
+      .filter((log: import('@/payload-types').PayloadTimeLog) => log.isBillable)
+      .reduce(
+        (sum: number, log: import('@/payload-types').PayloadTimeLog) => sum + (log.hours || 0),
+        0,
+      )
 
     return {
       success: true,

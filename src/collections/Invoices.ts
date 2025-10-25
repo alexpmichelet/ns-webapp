@@ -382,8 +382,7 @@ export const Invoices: CollectionConfig = {
               collection: 'payload-tickets',
               id: typeof ticketId === 'string' ? ticketId : ticketId.id,
               data: {
-                status: 'invoiced',
-                invoice: doc.id,
+                status: 'done',
               },
             })
           }
@@ -396,7 +395,7 @@ export const Invoices: CollectionConfig = {
               collection: 'payload-tickets',
               id: typeof ticketId === 'string' ? ticketId : ticketId.id,
               data: {
-                status: 'paid',
+                status: 'paid_closed',
               },
             })
           }

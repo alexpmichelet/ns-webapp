@@ -1,21 +1,28 @@
 import type { CollectionConfig } from 'payload'
 
-// Workflow states as defined in WORKFLOW_LOGIC.md
+export type TicketPriority = 'low' | 'medium' | 'high' | 'absolute'
 export type TicketStatus =
-  | 'pending_review'
-  | 'in_progress'
-  | 'blocked'
-  | 'pending_client_review'
-  | 'revision_requested'
-  | 'approved'
-  | 'invoiced'
-  | 'paid'
+  | 'to_estimate'
+  | 'needs_client_review'
+  | 'ready_to_develop'
+  | 'development_in_progress'
+  | 'ready_to_test'
+  | 'done'
+  | 'paid_closed'
 
 export const Tickets: CollectionConfig = {
   slug: 'payload-tickets',
   admin: {
-    useAsTitle: 'title',
-    defaultColumns: ['title', 'client', 'status', 'priority', 'estimatedHours', 'createdAt'],
+    useAsTitle: 'ticketNumber',
+    defaultColumns: [
+      'ticketNumber',
+      'project',
+      'client',
+      'status',
+      'priority',
+      'estimatedHours',
+      'createdAt',
+    ],
     group: 'Work Management',
   },
   access: {
@@ -44,6 +51,13 @@ export const Tickets: CollectionConfig = {
   },
   fields: [
     {
+      name: 'ticketNumber',
+      type: 'text',
+      required: true,
+      admin: { readOnly: true, position: 'sidebar' },
+      index: true,
+    },
+    {
       name: 'title',
       type: 'text',
       required: true,
@@ -53,6 +67,14 @@ export const Tickets: CollectionConfig = {
       name: 'description',
       type: 'richText',
       required: true,
+    },
+    {
+      name: 'project',
+      type: 'relationship',
+      relationTo: 'payload-projects',
+      required: true,
+      hasMany: false,
+      index: true,
     },
     {
       name: 'client',
@@ -74,17 +96,16 @@ export const Tickets: CollectionConfig = {
       name: 'status',
       type: 'select',
       required: true,
-      defaultValue: 'pending_review',
+      defaultValue: 'to_estimate',
       index: true,
       options: [
-        { label: 'Pending Review', value: 'pending_review' },
-        { label: 'In Progress', value: 'in_progress' },
-        { label: 'Blocked', value: 'blocked' },
-        { label: 'Pending Client Review', value: 'pending_client_review' },
-        { label: 'Revision Requested', value: 'revision_requested' },
-        { label: 'Approved', value: 'approved' },
-        { label: 'Invoiced', value: 'invoiced' },
-        { label: 'Paid', value: 'paid' },
+        { label: 'To Estimate', value: 'to_estimate' },
+        { label: 'Needs Client Review', value: 'needs_client_review' },
+        { label: 'Ready To Develop', value: 'ready_to_develop' },
+        { label: 'Development In Progress', value: 'development_in_progress' },
+        { label: 'Ready To Test', value: 'ready_to_test' },
+        { label: 'Done', value: 'done' },
+        { label: 'Paid / Closed', value: 'paid_closed' },
       ],
       admin: {
         position: 'sidebar',
@@ -99,7 +120,7 @@ export const Tickets: CollectionConfig = {
         { label: 'Low', value: 'low' },
         { label: 'Medium', value: 'medium' },
         { label: 'High', value: 'high' },
-        { label: 'Urgent', value: 'urgent' },
+        { label: 'Absolute', value: 'absolute' },
       ],
       admin: {
         position: 'sidebar',
@@ -156,6 +177,41 @@ export const Tickets: CollectionConfig = {
       },
     },
     {
+      name: 'createdBy',
+      type: 'relationship',
+      relationTo: 'payload-users',
+      required: true,
+      hasMany: false,
+      filterOptions: {
+        role: {
+          equals: 'client',
+        },
+      },
+      admin: {
+        position: 'sidebar',
+      },
+    },
+    {
+      name: 'assignedTo',
+      type: 'relationship',
+      relationTo: 'payload-users',
+      hasMany: true,
+      filterOptions: {
+        role: {
+          not_equals: 'client',
+        },
+      },
+      admin: {
+        position: 'sidebar',
+      },
+    },
+    {
+      name: 'isRevision',
+      type: 'checkbox',
+      defaultValue: false,
+      admin: { position: 'sidebar' },
+    },
+    {
       name: 'revisionCount',
       type: 'number',
       defaultValue: 0,
@@ -169,7 +225,7 @@ export const Tickets: CollectionConfig = {
     {
       name: 'maxRevisions',
       type: 'number',
-      defaultValue: 2,
+      defaultValue: 3,
       min: 0,
       admin: {
         description: 'Maximum allowed revisions before extra charges',
@@ -177,14 +233,26 @@ export const Tickets: CollectionConfig = {
       },
     },
     {
-      name: 'tags',
-      type: 'array',
-      fields: [
-        {
-          name: 'tag',
-          type: 'text',
-        },
-      ],
+      name: 'parentTicket',
+      type: 'relationship',
+      relationTo: 'payload-tickets',
+      hasMany: false,
+      admin: { description: 'Parent ticket for revisions' },
+    },
+    {
+      name: 'testingStartDate',
+      type: 'date',
+      admin: { position: 'sidebar' },
+    },
+    {
+      name: 'testingDeadline',
+      type: 'date',
+      admin: { position: 'sidebar', readOnly: true },
+    },
+    {
+      name: 'autoApprovalDate',
+      type: 'date',
+      admin: { position: 'sidebar' },
     },
     {
       name: 'attachments',
@@ -192,66 +260,54 @@ export const Tickets: CollectionConfig = {
       relationTo: 'payload-media',
       hasMany: true,
     },
-    {
-      name: 'blockedReason',
-      type: 'textarea',
-      admin: {
-        condition: (data) => data?.status === 'blocked',
-        description: 'Why is this ticket blocked?',
-      },
-    },
-    {
-      name: 'completedAt',
-      type: 'date',
-      admin: {
-        readOnly: true,
-        position: 'sidebar',
-      },
-    },
-    {
-      name: 'invoice',
-      type: 'relationship',
-      relationTo: 'payload-invoices',
-      hasMany: false,
-      admin: {
-        readOnly: true,
-        position: 'sidebar',
-      },
-    },
-    {
-      name: 'metadata',
-      type: 'json',
-      admin: {
-        description: 'Additional ticket metadata',
-      },
-    },
   ],
   hooks: {
     beforeChange: [
-      async ({ data = {} as any, req, operation, originalDoc }) => {
-        // Set client to current user if creating and not admin
-        if (operation === 'create' && req.user && req.user?.role !== 'admin') {
+      async ({ data = {} as any, req, operation, originalDoc, collection }) => {
+        // Set createdBy to current user if creating and user is client
+        if (operation === 'create' && req.user && req.user?.role === 'client') {
+          data.createdBy = (req.user as any).id
           data.client = (req.user as any).id
         }
 
-        // Track status changes
-        if (originalDoc && originalDoc.status !== data.status) {
-          // Set completedAt when approved
-          if (data.status === 'approved' && !data.completedAt) {
-            data.completedAt = new Date().toISOString()
+        // Ensure ticketNumber exists; generate if missing
+        if (!data.ticketNumber) {
+          // Generate sequential number per project: REQ-XXX
+          const prefix = 'REQ-'
+          // Find last ticket for project sorted by createdAt desc
+          const last = await req.payload.find({
+            collection: collection.slug,
+            where: { project: { equals: data.project } },
+            sort: '-createdAt',
+            limit: 1,
+          })
+          let nextNumber = 1
+          if (last.docs && last.docs.length > 0) {
+            const lastDoc = last.docs[0] as any
+            const match = String(lastDoc.ticketNumber || '').match(/REQ-(\d{3,})$/)
+            if (match) nextNumber = parseInt(match[1], 10) + 1
           }
+          data.ticketNumber = `${prefix}${String(nextNumber).padStart(3, '0')}`
+        }
 
-          // Increment revision count
-          if (data.status === 'revision_requested') {
-            data.revisionCount = (data.revisionCount || 0) + 1
+        // Auto-calc testingDeadline = testingStartDate + 5 business days
+        if (data.testingStartDate) {
+          const start = new Date(data.testingStartDate)
+          let daysAdded = 0
+          const result = new Date(start)
+          while (daysAdded < 5) {
+            result.setDate(result.getDate() + 1)
+            const day = result.getDay()
+            if (day !== 0 && day !== 6) {
+              daysAdded += 1
+            }
           }
+          data.testingDeadline = result.toISOString()
+        }
 
-          // Set approval deadline for pending client review
-          if (data.status === 'pending_client_review' && data.requiresClientApproval) {
-            const deadline = new Date()
-            deadline.setHours(deadline.getHours() + (data.autoApprovalHours || 72))
-            data.approvalDeadline = deadline.toISOString()
-          }
+        // Maintain revision count if isRevision toggled or parentTicket set
+        if (data.isRevision || data.parentTicket) {
+          data.revisionCount = data.revisionCount || 0
         }
 
         return data
@@ -259,11 +315,7 @@ export const Tickets: CollectionConfig = {
     ],
     afterChange: [
       async ({ doc, req, operation, previousDoc }) => {
-        // Send notifications on status change
-        if (previousDoc && previousDoc.status !== doc.status) {
-          // TODO: Queue notification based on status transition
-          // This will be implemented in the notification system
-        }
+        // Placeholder for future notifications
       },
     ],
   },

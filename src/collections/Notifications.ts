@@ -2,45 +2,31 @@ import type { CollectionConfig } from 'payload'
 
 export type NotificationType =
   | 'ticket_created'
-  | 'ticket_status_changed'
+  | 'estimate_ready'
   | 'ticket_approved'
-  | 'ticket_revision_requested'
-  | 'time_logged'
-  | 'invoice_created'
-  | 'invoice_due'
-  | 'invoice_overdue'
-  | 'payment_received'
-
-export type NotificationChannel = 'email' | 'in_app' | 'both'
+  | 'testing_ready'
+  | 'auto_approval_warning'
+  | 'revision_requested'
+  | 'payment_marked'
 
 export const Notifications: CollectionConfig = {
   slug: 'payload-notifications',
   admin: {
-    useAsTitle: 'subject',
-    defaultColumns: ['subject', 'recipient', 'type', 'status', 'createdAt'],
+    useAsTitle: 'title',
+    defaultColumns: ['title', 'recipient', 'type', 'isRead', 'createdAt'],
     group: 'System',
   },
   access: {
-    // Users can see their own notifications, admins see all
     read: ({ req: { user } }) => {
       if (!user) return false
       if (user.role === 'admin') return true
       return {
-        recipient: {
-          equals: user.id,
-        },
+        recipient: { equals: user.id },
       }
     },
-    // System creates notifications
     create: () => true,
-    // Only admins can update (for marking as sent/failed)
-    update: ({ req: { user } }) => {
-      return user?.role === 'admin'
-    },
-    // Only admins can delete
-    delete: ({ req: { user } }) => {
-      return user?.role === 'admin'
-    },
+    update: ({ req: { user } }) => user?.role === 'admin',
+    delete: ({ req: { user } }) => user?.role === 'admin',
   },
   fields: [
     {
@@ -50,9 +36,14 @@ export const Notifications: CollectionConfig = {
       required: true,
       index: true,
       hasMany: false,
-      admin: {
-        position: 'sidebar',
-      },
+      admin: { position: 'sidebar' },
+    },
+    {
+      name: 'project',
+      type: 'relationship',
+      relationTo: 'payload-projects',
+      hasMany: false,
+      admin: { description: 'Related project if applicable' },
     },
     {
       name: 'type',
@@ -61,150 +52,38 @@ export const Notifications: CollectionConfig = {
       index: true,
       options: [
         { label: 'Ticket Created', value: 'ticket_created' },
-        { label: 'Ticket Status Changed', value: 'ticket_status_changed' },
+        { label: 'Estimate Ready', value: 'estimate_ready' },
         { label: 'Ticket Approved', value: 'ticket_approved' },
-        { label: 'Ticket Revision Requested', value: 'ticket_revision_requested' },
-        { label: 'Time Logged', value: 'time_logged' },
-        { label: 'Invoice Created', value: 'invoice_created' },
-        { label: 'Invoice Due', value: 'invoice_due' },
-        { label: 'Invoice Overdue', value: 'invoice_overdue' },
-        { label: 'Payment Received', value: 'payment_received' },
+        { label: 'Testing Ready', value: 'testing_ready' },
+        { label: 'Auto Approval Warning', value: 'auto_approval_warning' },
+        { label: 'Revision Requested', value: 'revision_requested' },
+        { label: 'Payment Marked', value: 'payment_marked' },
       ],
-      admin: {
-        position: 'sidebar',
-      },
+      admin: { position: 'sidebar' },
     },
     {
-      name: 'channel',
-      type: 'select',
-      required: true,
-      defaultValue: 'email',
-      options: [
-        { label: 'Email', value: 'email' },
-        { label: 'In-App', value: 'in_app' },
-        { label: 'Both', value: 'both' },
-      ],
-      admin: {
-        position: 'sidebar',
-      },
-    },
-    {
-      name: 'subject',
+      name: 'title',
       type: 'text',
       required: true,
     },
     {
       name: 'message',
-      type: 'richText',
+      type: 'text',
       required: true,
     },
     {
-      name: 'plainTextMessage',
-      type: 'textarea',
-      admin: {
-        description: 'Plain text version for email',
-      },
-    },
-    {
-      name: 'status',
-      type: 'select',
-      required: true,
-      defaultValue: 'pending',
+      name: 'isRead',
+      type: 'checkbox',
+      defaultValue: false,
       index: true,
-      options: [
-        { label: 'Pending', value: 'pending' },
-        { label: 'Sent', value: 'sent' },
-        { label: 'Failed', value: 'failed' },
-        { label: 'Read', value: 'read' },
-      ],
-      admin: {
-        position: 'sidebar',
-      },
-    },
-    {
-      name: 'sentAt',
-      type: 'date',
-      admin: {
-        readOnly: true,
-        position: 'sidebar',
-      },
-    },
-    {
-      name: 'readAt',
-      type: 'date',
-      admin: {
-        readOnly: true,
-        position: 'sidebar',
-      },
+      admin: { position: 'sidebar' },
     },
     {
       name: 'relatedTicket',
       type: 'relationship',
       relationTo: 'payload-tickets',
       hasMany: false,
-      admin: {
-        description: 'Related ticket if applicable',
-      },
-    },
-    {
-      name: 'relatedInvoice',
-      type: 'relationship',
-      relationTo: 'payload-invoices',
-      hasMany: false,
-      admin: {
-        description: 'Related invoice if applicable',
-      },
-    },
-    {
-      name: 'relatedTimeLog',
-      type: 'relationship',
-      relationTo: 'payload-time-logs',
-      hasMany: false,
-      admin: {
-        description: 'Related time log if applicable',
-      },
-    },
-    {
-      name: 'emailData',
-      type: 'json',
-      admin: {
-        description: 'Additional data for email template',
-      },
-    },
-    {
-      name: 'error',
-      type: 'textarea',
-      admin: {
-        readOnly: true,
-        description: 'Error message if sending failed',
-      },
-    },
-    {
-      name: 'retryCount',
-      type: 'number',
-      defaultValue: 0,
-      admin: {
-        readOnly: true,
-        position: 'sidebar',
-      },
-    },
-    {
-      name: 'metadata',
-      type: 'json',
-      admin: {
-        description: 'Additional notification metadata',
-      },
+      admin: { description: 'Related ticket if applicable' },
     },
   ],
-  hooks: {
-    afterChange: [
-      async ({ doc, req, operation }) => {
-        // Queue email sending for pending notifications
-        if (doc.status === 'pending' && (doc.channel === 'email' || doc.channel === 'both')) {
-          // TODO: Queue email sending job
-          // This will be implemented with the email service
-        }
-      },
-    ],
-  },
 }

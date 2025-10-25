@@ -73,6 +73,7 @@ export interface Config {
     'payload-verifications': PayloadVerification;
     'admin-invitations': AdminInvitation;
     'payload-media': PayloadMedia;
+    'payload-projects': PayloadProject;
     'payload-tickets': PayloadTicket;
     'payload-time-logs': PayloadTimeLog;
     'payload-invoices': PayloadInvoice;
@@ -89,6 +90,7 @@ export interface Config {
     'payload-verifications': PayloadVerificationsSelect<false> | PayloadVerificationsSelect<true>;
     'admin-invitations': AdminInvitationsSelect<false> | AdminInvitationsSelect<true>;
     'payload-media': PayloadMediaSelect<false> | PayloadMediaSelect<true>;
+    'payload-projects': PayloadProjectsSelect<false> | PayloadProjectsSelect<true>;
     'payload-tickets': PayloadTicketsSelect<false> | PayloadTicketsSelect<true>;
     'payload-time-logs': PayloadTimeLogsSelect<false> | PayloadTimeLogsSelect<true>;
     'payload-invoices': PayloadInvoicesSelect<false> | PayloadInvoicesSelect<true>;
@@ -318,10 +320,24 @@ export interface PayloadMedia {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payload-projects".
+ */
+export interface PayloadProject {
+  id: string;
+  name: string;
+  description?: string | null;
+  status: 'active' | 'paused' | 'completed' | 'archived';
+  clientId: string | PayloadUser;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-tickets".
  */
 export interface PayloadTicket {
   id: string;
+  ticketNumber: string;
   title: string;
   description: {
     root: {
@@ -338,17 +354,17 @@ export interface PayloadTicket {
     };
     [k: string]: unknown;
   };
+  project: string | PayloadProject;
   client: string | PayloadUser;
   status:
-    | 'pending_review'
-    | 'in_progress'
-    | 'blocked'
-    | 'pending_client_review'
-    | 'revision_requested'
-    | 'approved'
-    | 'invoiced'
-    | 'paid';
-  priority: 'low' | 'medium' | 'high' | 'urgent';
+    | 'to_estimate'
+    | 'needs_client_review'
+    | 'ready_to_develop'
+    | 'development_in_progress'
+    | 'ready_to_test'
+    | 'done'
+    | 'paid_closed';
+  priority: 'low' | 'medium' | 'high' | 'absolute';
   /**
    * Estimated hours to complete
    */
@@ -369,6 +385,9 @@ export interface PayloadTicket {
    * Hours to wait before auto-approval
    */
   autoApprovalHours?: number | null;
+  createdBy: string | PayloadUser;
+  assignedTo?: (string | PayloadUser)[] | null;
+  isRevision?: boolean | null;
   /**
    * Number of revisions requested
    */
@@ -377,21 +396,58 @@ export interface PayloadTicket {
    * Maximum allowed revisions before extra charges
    */
   maxRevisions?: number | null;
+  /**
+   * Parent ticket for revisions
+   */
+  parentTicket?: (string | null) | PayloadTicket;
+  testingStartDate?: string | null;
+  testingDeadline?: string | null;
+  autoApprovalDate?: string | null;
+  attachments?: (string | PayloadMedia)[] | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payload-time-logs".
+ */
+export interface PayloadTimeLog {
+  id: string;
+  ticket: string | PayloadTicket;
+  user: string | PayloadUser;
+  description: string;
+  date: string;
+  /**
+   * When work started
+   */
+  startTime?: string | null;
+  /**
+   * When work ended
+   */
+  endTime?: string | null;
+  /**
+   * Hours worked (minimum 0.25, rounds to nearest 0.25)
+   */
+  hours: number;
+  isBillable: boolean;
+  /**
+   * Rate at time of logging (from client)
+   */
+  hourlyRate: number;
+  /**
+   * Calculated: hours × hourlyRate
+   */
+  totalAmount: number;
+  invoice?: (string | null) | PayloadInvoice;
+  isInvoiced?: boolean | null;
   tags?:
     | {
         tag?: string | null;
         id?: string | null;
       }[]
     | null;
-  attachments?: (string | PayloadMedia)[] | null;
   /**
-   * Why is this ticket blocked?
-   */
-  blockedReason?: string | null;
-  completedAt?: string | null;
-  invoice?: (string | null) | PayloadInvoice;
-  /**
-   * Additional ticket metadata
+   * Additional time log metadata
    */
   metadata?:
     | {
@@ -476,140 +532,30 @@ export interface PayloadInvoice {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "payload-time-logs".
- */
-export interface PayloadTimeLog {
-  id: string;
-  ticket: string | PayloadTicket;
-  user: string | PayloadUser;
-  description: string;
-  date: string;
-  /**
-   * When work started
-   */
-  startTime?: string | null;
-  /**
-   * When work ended
-   */
-  endTime?: string | null;
-  /**
-   * Hours worked (minimum 0.25, rounds to nearest 0.25)
-   */
-  hours: number;
-  isBillable: boolean;
-  /**
-   * Rate at time of logging (from client)
-   */
-  hourlyRate: number;
-  /**
-   * Calculated: hours × hourlyRate
-   */
-  totalAmount: number;
-  invoice?: (string | null) | PayloadInvoice;
-  isInvoiced?: boolean | null;
-  tags?:
-    | {
-        tag?: string | null;
-        id?: string | null;
-      }[]
-    | null;
-  /**
-   * Additional time log metadata
-   */
-  metadata?:
-    | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
-    | null;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-notifications".
  */
 export interface PayloadNotification {
   id: string;
   recipient: string | PayloadUser;
+  /**
+   * Related project if applicable
+   */
+  project?: (string | null) | PayloadProject;
   type:
     | 'ticket_created'
-    | 'ticket_status_changed'
+    | 'estimate_ready'
     | 'ticket_approved'
-    | 'ticket_revision_requested'
-    | 'time_logged'
-    | 'invoice_created'
-    | 'invoice_due'
-    | 'invoice_overdue'
-    | 'payment_received';
-  channel: 'email' | 'in_app' | 'both';
-  subject: string;
-  message: {
-    root: {
-      type: string;
-      children: {
-        type: any;
-        version: number;
-        [k: string]: unknown;
-      }[];
-      direction: ('ltr' | 'rtl') | null;
-      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
-      indent: number;
-      version: number;
-    };
-    [k: string]: unknown;
-  };
-  /**
-   * Plain text version for email
-   */
-  plainTextMessage?: string | null;
-  status: 'pending' | 'sent' | 'failed' | 'read';
-  sentAt?: string | null;
-  readAt?: string | null;
+    | 'testing_ready'
+    | 'auto_approval_warning'
+    | 'revision_requested'
+    | 'payment_marked';
+  title: string;
+  message: string;
+  isRead?: boolean | null;
   /**
    * Related ticket if applicable
    */
   relatedTicket?: (string | null) | PayloadTicket;
-  /**
-   * Related invoice if applicable
-   */
-  relatedInvoice?: (string | null) | PayloadInvoice;
-  /**
-   * Related time log if applicable
-   */
-  relatedTimeLog?: (string | null) | PayloadTimeLog;
-  /**
-   * Additional data for email template
-   */
-  emailData?:
-    | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
-    | null;
-  /**
-   * Error message if sending failed
-   */
-  error?: string | null;
-  retryCount?: number | null;
-  /**
-   * Additional notification metadata
-   */
-  metadata?:
-    | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
-    | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -643,6 +589,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'payload-media';
         value: string | PayloadMedia;
+      } | null)
+    | ({
+        relationTo: 'payload-projects';
+        value: string | PayloadProject;
       } | null)
     | ({
         relationTo: 'payload-tickets';
@@ -795,11 +745,25 @@ export interface PayloadMediaSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payload-projects_select".
+ */
+export interface PayloadProjectsSelect<T extends boolean = true> {
+  name?: T;
+  description?: T;
+  status?: T;
+  clientId?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-tickets_select".
  */
 export interface PayloadTicketsSelect<T extends boolean = true> {
+  ticketNumber?: T;
   title?: T;
   description?: T;
+  project?: T;
   client?: T;
   status?: T;
   priority?: T;
@@ -808,19 +772,16 @@ export interface PayloadTicketsSelect<T extends boolean = true> {
   requiresClientApproval?: T;
   approvalDeadline?: T;
   autoApprovalHours?: T;
+  createdBy?: T;
+  assignedTo?: T;
+  isRevision?: T;
   revisionCount?: T;
   maxRevisions?: T;
-  tags?:
-    | T
-    | {
-        tag?: T;
-        id?: T;
-      };
+  parentTicket?: T;
+  testingStartDate?: T;
+  testingDeadline?: T;
+  autoApprovalDate?: T;
   attachments?: T;
-  blockedReason?: T;
-  completedAt?: T;
-  invoice?: T;
-  metadata?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -893,21 +854,12 @@ export interface PayloadInvoicesSelect<T extends boolean = true> {
  */
 export interface PayloadNotificationsSelect<T extends boolean = true> {
   recipient?: T;
+  project?: T;
   type?: T;
-  channel?: T;
-  subject?: T;
+  title?: T;
   message?: T;
-  plainTextMessage?: T;
-  status?: T;
-  sentAt?: T;
-  readAt?: T;
+  isRead?: T;
   relatedTicket?: T;
-  relatedInvoice?: T;
-  relatedTimeLog?: T;
-  emailData?: T;
-  error?: T;
-  retryCount?: T;
-  metadata?: T;
   updatedAt?: T;
   createdAt?: T;
 }

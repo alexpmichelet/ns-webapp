@@ -7,25 +7,25 @@ import { Badge } from '@/components/atoms/badge'
 import { useToast } from '@/hooks/use-toast'
 import type { DragEndEvent } from '@/components/ui/shadcn-io/kanban'
 import type { TicketStatus } from '@/collections/Tickets'
-import type { Ticket } from '@/payload-types'
+import type { PayloadTicket } from '@/payload-types'
 
 type TicketItem = {
   id: string
   name: string
   column: string
   title: string
-  priority: Ticket['priority']
+  priority: PayloadTicket['priority']
   actualHours: number
   estimatedHours: number
-  client: Ticket['client']
+  client: PayloadTicket['client']
 }
 
 const columns = [
-  { id: 'pending_review', name: 'Pending Review' },
-  { id: 'in_progress', name: 'In Progress' },
-  { id: 'pending_client_review', name: 'Client Review' },
-  { id: 'approved', name: 'Approved' },
-  { id: 'blocked', name: 'Blocked' },
+  { id: 'to_estimate', name: 'To Estimate' },
+  { id: 'ready_to_develop', name: 'Ready To Dev' },
+  { id: 'development_in_progress', name: 'In Dev' },
+  { id: 'ready_to_test', name: 'Ready To Test' },
+  { id: 'done', name: 'Done' },
 ]
 
 export function TicketKanbanBoard() {
@@ -43,7 +43,7 @@ export function TicketKanbanBoard() {
       const response = await fetch('/api/tickets?status=active')
       if (response.ok) {
         const data = await response.json()
-        const formattedTickets = (data.tickets as Ticket[]).map((ticket) => ({
+        const formattedTickets = (data.tickets as PayloadTicket[]).map((ticket) => ({
           id: String(ticket.id),
           name: ticket.title,
           column: ticket.status,
@@ -109,7 +109,7 @@ export function TicketKanbanBoard() {
           <div className="flex gap-2 mb-2">
             <Badge
               variant={
-                ticket.priority === 'urgent'
+                ticket.priority === 'absolute'
                   ? 'destructive'
                   : ticket.priority === 'high'
                     ? 'default'

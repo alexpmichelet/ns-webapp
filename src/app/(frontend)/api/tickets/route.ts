@@ -7,18 +7,18 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get('status')
     const limit = parseInt(searchParams.get('limit') || '100')
 
-    let where: any = {}
+    const where: Record<string, unknown> = {}
 
     if (status === 'active') {
       where.status = {
-        not_in: ['paid', 'cancelled'],
+        not_in: ['paid_closed'],
       }
     } else if (status) {
       where.status = { equals: status }
     }
 
     const tickets = await payload.find({
-      collection: 'tickets',
+      collection: 'payload-tickets',
       where,
       limit,
       sort: '-createdAt',
@@ -27,9 +27,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ tickets: tickets.docs })
   } catch (error) {
     console.error('Error fetching tickets:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch tickets' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Failed to fetch tickets' }, { status: 500 })
   }
 }

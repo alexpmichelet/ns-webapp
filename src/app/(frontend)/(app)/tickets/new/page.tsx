@@ -8,13 +8,7 @@ import * as z from 'zod'
 import { Button } from '@/components/atoms/button'
 import { Input } from '@/components/atoms/input'
 import { Textarea } from '@/components/atoms/textarea'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/atoms/card'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/atoms/card'
 import {
   Form,
   FormControl,
@@ -37,8 +31,9 @@ import { useToast } from '@/hooks/use-toast'
 const ticketSchema = z.object({
   title: z.string().min(5, 'Title must be at least 5 characters').max(200),
   description: z.string().min(20, 'Description must be at least 20 characters'),
+  project: z.string().min(1, 'Project is required'),
   estimatedHours: z.number().min(0.25, 'Minimum 0.25 hours'),
-  priority: z.enum(['low', 'medium', 'high', 'urgent']).optional(),
+  priority: z.enum(['low', 'medium', 'high', 'absolute']).optional(),
 })
 
 type TicketFormData = z.infer<typeof ticketSchema>
@@ -53,6 +48,7 @@ export default function NewTicketPage() {
     defaultValues: {
       title: '',
       description: '',
+      project: '',
       estimatedHours: 1,
       priority: 'medium',
     },
@@ -65,6 +61,7 @@ export default function NewTicketPage() {
       const result = await createTicket({
         title: data.title,
         description: data.description,
+        project: data.project,
         estimatedHours: data.estimatedHours,
         priority: data.priority,
       })
@@ -99,7 +96,7 @@ export default function NewTicketPage() {
         <CardHeader>
           <CardTitle>Submit New Ticket</CardTitle>
           <CardDescription>
-            Describe your project or issue, and we'll get started right away.
+            Describe your project or issue, and we&apos;ll get started right away.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -112,14 +109,9 @@ export default function NewTicketPage() {
                   <FormItem>
                     <FormLabel>Title</FormLabel>
                     <FormControl>
-                      <Input
-                        placeholder="Brief description of your request"
-                        {...field}
-                      />
+                      <Input placeholder="Brief description of your request" {...field} />
                     </FormControl>
-                    <FormDescription>
-                      A short, descriptive title for your ticket
-                    </FormDescription>
+                    <FormDescription>A short, descriptive title for your ticket</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -139,9 +131,23 @@ export default function NewTicketPage() {
                       />
                     </FormControl>
                     <FormDescription>
-                      Include as much detail as possible to help us understand
-                      your needs
+                      Include as much detail as possible to help us understand your needs
                     </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="project"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Project ID</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Enter project ID" {...field} />
+                    </FormControl>
+                    <FormDescription>Choose the project this ticket belongs to.</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -159,14 +165,11 @@ export default function NewTicketPage() {
                         step="0.25"
                         min="0.25"
                         {...field}
-                        onChange={(e) =>
-                          field.onChange(parseFloat(e.target.value))
-                        }
+                        onChange={(e) => field.onChange(parseFloat(e.target.value))}
                       />
                     </FormControl>
                     <FormDescription>
-                      How many hours do you think this will take? (We'll refine
-                      this estimate)
+                      How many hours do you think this will take? (We&apos;ll refine this estimate)
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -179,10 +182,7 @@ export default function NewTicketPage() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Priority</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                    >
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select priority" />
@@ -192,23 +192,17 @@ export default function NewTicketPage() {
                         <SelectItem value="low">Low</SelectItem>
                         <SelectItem value="medium">Medium</SelectItem>
                         <SelectItem value="high">High</SelectItem>
-                        <SelectItem value="urgent">Urgent</SelectItem>
+                        <SelectItem value="absolute">Absolute</SelectItem>
                       </SelectContent>
                     </Select>
-                    <FormDescription>
-                      How urgent is this request?
-                    </FormDescription>
+                    <FormDescription>How urgent is this request?</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
               />
 
               <div className="flex justify-end gap-4">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => router.back()}
-                >
+                <Button type="button" variant="outline" onClick={() => router.back()}>
                   Cancel
                 </Button>
                 <Button type="submit" disabled={isSubmitting}>

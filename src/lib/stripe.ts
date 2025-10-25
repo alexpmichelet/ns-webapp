@@ -203,15 +203,12 @@ export async function handlePaymentSuccess(paymentIntentId: string): Promise<voi
 
   // Create notification for client
   await payload.create({
-    collection: 'notifications',
+    collection: 'payload-notifications',
     data: {
       recipient: typeof invoice.client === 'string' ? invoice.client : invoice.client.id,
-      type: 'payment_received',
-      channel: 'both',
-      subject: 'Payment Received',
+      type: 'payment_marked',
+      title: 'Payment Received',
       message: `Your payment for invoice ${invoice.invoiceNumber} has been received. Thank you!`,
-      plainTextMessage: `Your payment for invoice ${invoice.invoiceNumber} has been received. Thank you!`,
-      relatedInvoice: invoice.id,
     },
   })
 }

@@ -140,10 +140,7 @@ export default function TicketDetailPage() {
               </div>
               {canApprove && (
                 <div className="flex gap-2">
-                  <Dialog
-                    open={showRevisionDialog}
-                    onOpenChange={setShowRevisionDialog}
-                  >
+                  <Dialog open={showRevisionDialog} onOpenChange={setShowRevisionDialog}>
                     <DialogTrigger asChild>
                       <Button variant="outline">Request Revision</Button>
                     </DialogTrigger>
@@ -151,7 +148,7 @@ export default function TicketDetailPage() {
                       <DialogHeader>
                         <DialogTitle>Request Revision</DialogTitle>
                         <DialogDescription>
-                          Please explain what changes you'd like to see.
+                          Please explain what changes you&apos;d like to see.
                         </DialogDescription>
                       </DialogHeader>
                       <Textarea
@@ -161,19 +158,11 @@ export default function TicketDetailPage() {
                         className="min-h-[100px]"
                       />
                       <DialogFooter>
-                        <Button
-                          variant="outline"
-                          onClick={() => setShowRevisionDialog(false)}
-                        >
+                        <Button variant="outline" onClick={() => setShowRevisionDialog(false)}>
                           Cancel
                         </Button>
-                        <Button
-                          onClick={handleRequestRevision}
-                          disabled={isRequestingRevision}
-                        >
-                          {isRequestingRevision
-                            ? 'Submitting...'
-                            : 'Submit Request'}
+                        <Button onClick={handleRequestRevision} disabled={isRequestingRevision}>
+                          {isRequestingRevision ? 'Submitting...' : 'Submit Request'}
                         </Button>
                       </DialogFooter>
                     </DialogContent>
@@ -216,9 +205,7 @@ export default function TicketDetailPage() {
           </Card>
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Time Logs
-              </CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">Time Logs</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{timeLogs.length}</div>
@@ -247,16 +234,13 @@ export default function TicketDetailPage() {
             ) : (
               <div className="space-y-4">
                 {timeLogs.map((log) => (
-                  <div
-                    key={log.id}
-                    className="border-b pb-4 last:border-0"
-                  >
+                  <div key={log.id} className="border-b pb-4 last:border-0">
                     <div className="flex justify-between items-start">
                       <div className="flex-1">
                         <p className="font-medium">{log.description}</p>
                         <p className="text-sm text-muted-foreground">
-                          {new Date(log.date).toLocaleDateString()} •{' '}
-                          {log.hours}h @ ${log.hourlyRate}/hr
+                          {new Date(log.date).toLocaleDateString()} • {log.hours}h @ $
+                          {log.hourlyRate}/hr
                         </p>
                       </div>
                       <div className="text-right">

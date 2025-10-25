@@ -10,6 +10,7 @@ import { auth } from './plugins/auth'
 import { Users } from './collections/Users'
 import { Media } from './collections/Media'
 import { Tickets } from './collections/Tickets'
+import { Projects } from './collections/Projects'
 import { TimeLogs } from './collections/TimeLogs'
 import { Invoices } from './collections/Invoices'
 import { Notifications } from './collections/Notifications'
@@ -24,7 +25,7 @@ export default buildConfig({
       baseDir: path.resolve(dirname),
     },
   },
-  collections: [Users, Media, Tickets, TimeLogs, Invoices, Notifications],
+  collections: [Users, Media, Projects, Tickets, TimeLogs, Invoices, Notifications],
   editor: lexicalEditor(),
   secret: process.env.PAYLOAD_SECRET || '',
   typescript: {
