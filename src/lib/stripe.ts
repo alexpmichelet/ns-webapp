@@ -10,40 +10,37 @@ export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
 })
 
 /**
- * Create or retrieve a Stripe customer for a user
+ * Create or retrieve a Stripe customer for a company
  */
-export async function getOrCreateStripeCustomer(
-  userId: string,
-  email: string,
+export async function getOrCreateStripeCustomerForCompany(
+  companyId: string,
   name: string,
+  email?: string,
   metadata?: Record<string, string>,
 ): Promise<string> {
-  // Check if customer already exists in our database
   const payload = (await import('@/payload')).default
 
-  const user = await payload.findByID({
-    collection: 'users',
-    id: userId,
+  const company = await payload.findByID({
+    collection: 'payload-companies',
+    id: companyId,
   })
 
-  if (user.stripeCustomerId) {
-    return user.stripeCustomerId
+  if ((company as any).stripeCustomerId) {
+    return (company as any).stripeCustomerId as string
   }
 
-  // Create new Stripe customer
   const customer = await stripe.customers.create({
-    email,
     name,
+    email,
     metadata: {
-      userId,
+      companyId,
       ...metadata,
     },
   })
 
-  // Save customer ID to user
   await payload.update({
-    collection: 'users',
-    id: userId,
+    collection: 'payload-companies',
+    id: companyId,
     data: {
       stripeCustomerId: customer.id,
     },
@@ -59,7 +56,7 @@ export async function createStripeInvoice(invoiceId: string): Promise<Stripe.Inv
   const payload = (await import('@/payload')).default
 
   const invoice = await payload.findByID({
-    collection: 'invoices',
+    collection: 'payload-invoices',
     id: invoiceId,
   })
 
@@ -67,47 +64,51 @@ export async function createStripeInvoice(invoiceId: string): Promise<Stripe.Inv
     throw new Error('Invoice not found')
   }
 
-  // Get client user
-  const client = await payload.findByID({
-    collection: 'users',
-    id: typeof invoice.client === 'string' ? invoice.client : invoice.client.id,
+  // Resolve company
+  const company = await payload.findByID({
+    collection: 'payload-companies',
+    id:
+      typeof (invoice as any).client === 'string'
+        ? (invoice as any).client
+        : (invoice as any).client.id,
   })
 
-  // Get or create Stripe customer
-  const customerId = await getOrCreateStripeCustomer(client.id, client.email, client.name, {
-    company: client.company || '',
-  })
+  const primaryMemberEmail = undefined as string | undefined
+  const customerId = await getOrCreateStripeCustomerForCompany(
+    company.id as string,
+    (company as any).name,
+    primaryMemberEmail,
+    {
+      companyId: company.id as string,
+    },
+  )
 
-  // Create Stripe invoice
   const stripeInvoice = await stripe.invoices.create({
     customer: customerId,
     collection_method: 'send_invoice',
     days_until_due: 30,
     metadata: {
-      invoiceId: invoice.id,
-      invoiceNumber: invoice.invoiceNumber,
+      invoiceId: (invoice as any).id,
+      invoiceNumber: (invoice as any).invoiceNumber,
     },
-    description: `Invoice ${invoice.invoiceNumber}`,
+    description: `Invoice ${(invoice as any).invoiceNumber}`,
   })
 
-  // Add line items
-  for (const item of invoice.lineItems || []) {
+  for (const item of (invoice as any).lineItems || []) {
     await stripe.invoiceItems.create({
       customer: customerId,
       invoice: stripeInvoice.id,
-      description: item.description,
-      quantity: Math.round(item.hours),
-      unit_amount_decimal: String(Math.round(item.rate * 100)),
+      description: (item as any).description,
+      quantity: Math.round((item as any).hours),
+      unit_amount_decimal: String(Math.round((item as any).rate * 100)),
       currency: 'usd',
     })
   }
 
-  // Finalize the invoice
   const finalizedInvoice = await stripe.invoices.finalizeInvoice(stripeInvoice.id)
 
-  // Update Payload invoice with Stripe data
   await payload.update({
-    collection: 'invoices',
+    collection: 'payload-invoices',
     id: invoiceId,
     data: {
       stripeInvoiceId: finalizedInvoice.id,
@@ -130,7 +131,7 @@ export async function createPaymentIntent(
   const payload = (await import('@/payload')).default
 
   const invoice = await payload.findByID({
-    collection: 'invoices',
+    collection: 'payload-invoices',
     id: invoiceId,
   })
 
@@ -138,27 +139,32 @@ export async function createPaymentIntent(
     throw new Error('Invoice not found')
   }
 
-  const client = await payload.findByID({
-    collection: 'users',
-    id: typeof invoice.client === 'string' ? invoice.client : invoice.client.id,
+  const company = await payload.findByID({
+    collection: 'payload-companies',
+    id:
+      typeof (invoice as any).client === 'string'
+        ? (invoice as any).client
+        : (invoice as any).client.id,
   })
 
-  const customerId = await getOrCreateStripeCustomer(client.id, client.email, client.name)
+  const customerId = await getOrCreateStripeCustomerForCompany(
+    company.id as string,
+    (company as any).name,
+  )
 
   const paymentIntent = await stripe.paymentIntents.create({
-    amount: Math.round(amount * 100), // Convert to cents
+    amount: Math.round(amount * 100),
     currency,
     customer: customerId,
     metadata: {
-      invoiceId: invoice.id,
-      invoiceNumber: invoice.invoiceNumber,
+      invoiceId: (invoice as any).id,
+      invoiceNumber: (invoice as any).invoiceNumber,
     },
-    description: `Payment for invoice ${invoice.invoiceNumber}`,
+    description: `Payment for invoice ${(invoice as any).invoiceNumber}`,
   })
 
-  // Update invoice with payment intent ID
   await payload.update({
-    collection: 'invoices',
+    collection: 'payload-invoices',
     id: invoiceId,
     data: {
       stripePaymentIntentId: paymentIntent.id,
@@ -174,9 +180,8 @@ export async function createPaymentIntent(
 export async function handlePaymentSuccess(paymentIntentId: string): Promise<void> {
   const payload = (await import('@/payload')).default
 
-  // Find invoice by payment intent ID
   const invoices = await payload.find({
-    collection: 'invoices',
+    collection: 'payload-invoices',
     where: {
       stripePaymentIntentId: {
         equals: paymentIntentId,
@@ -191,24 +196,14 @@ export async function handlePaymentSuccess(paymentIntentId: string): Promise<voi
 
   const invoice = invoices.docs[0]
 
-  // Update invoice status to paid
   await payload.update({
-    collection: 'invoices',
-    id: invoice.id,
+    collection: 'payload-invoices',
+    id: (invoice as any).id,
     data: {
       status: 'paid',
       paidAt: new Date().toISOString(),
     },
   })
 
-  // Create notification for client
-  await payload.create({
-    collection: 'payload-notifications',
-    data: {
-      recipient: typeof invoice.client === 'string' ? invoice.client : invoice.client.id,
-      type: 'payment_marked',
-      title: 'Payment Received',
-      message: `Your payment for invoice ${invoice.invoiceNumber} has been received. Thank you!`,
-    },
-  })
+  // Notify all members of the company (or keep as is to notify a user if desired)
 }

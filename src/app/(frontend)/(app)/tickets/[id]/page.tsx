@@ -15,9 +15,10 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/atoms/dialog'
-import { getTicketById, approveTicket, requestRevision } from '@/app/actions/tickets'
+import { approveTicket, requestRevision } from '@/app/actions/tickets'
 import { getTimeLogsByTicket } from '@/app/actions/time-logs'
 import { useToast } from '@/hooks/use-toast'
+import { payloadHook } from '@/lib/data/payload'
 
 export default function TicketDetailPage() {
   const params = useParams()
@@ -31,24 +32,28 @@ export default function TicketDetailPage() {
   const [isRequestingRevision, setIsRequestingRevision] = useState(false)
   const [showRevisionDialog, setShowRevisionDialog] = useState(false)
 
+  const { data: ticketRes, isLoading: isLoadingTicket } = payloadHook.findByID(
+    {
+      collection: 'payload-tickets',
+      id: params.id as string,
+      disableErrors: true,
+    } as any,
+    { enabled: !!params.id },
+  )
+
   useEffect(() => {
-    loadTicket()
+    const t = ticketRes as any
+    if (t) setTicket(t)
+  }, [ticketRes])
+
+  useEffect(() => {
+    const loadTimeLogs = async () => {
+      if (!params.id) return
+      const timeLogsResult = await getTimeLogsByTicket(params.id as string)
+      if (timeLogsResult.success) setTimeLogs(timeLogsResult.timeLogs)
+    }
+    loadTimeLogs()
   }, [params.id])
-
-  async function loadTicket() {
-    setIsLoading(true)
-    const ticketResult = await getTicketById(params.id as string)
-    const timeLogsResult = await getTimeLogsByTicket(params.id as string)
-
-    if (ticketResult.success) {
-      setTicket(ticketResult.ticket)
-    }
-    if (timeLogsResult.success) {
-      setTimeLogs(timeLogsResult.timeLogs)
-    }
-
-    setIsLoading(false)
-  }
 
   async function handleApprove() {
     setIsApproving(true)
@@ -59,7 +64,6 @@ export default function TicketDetailPage() {
         title: 'Ticket Approved',
         description: 'The ticket has been approved successfully.',
       })
-      loadTicket()
     } else {
       toast({
         title: 'Error',
@@ -90,7 +94,6 @@ export default function TicketDetailPage() {
       })
       setShowRevisionDialog(false)
       setRevisionReason('')
-      loadTicket()
     } else {
       toast({
         title: 'Error',
@@ -101,7 +104,7 @@ export default function TicketDetailPage() {
     setIsRequestingRevision(false)
   }
 
-  if (isLoading) {
+  if (isLoadingTicket) {
     return (
       <div className="container mx-auto py-8">
         <p>Loading...</p>

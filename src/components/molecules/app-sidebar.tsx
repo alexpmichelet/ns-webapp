@@ -1,7 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import { GalleryVerticalEnd } from 'lucide-react'
+import { GalleryVerticalEnd, Check, ChevronsUpDown } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
@@ -23,6 +23,15 @@ import { Button } from '@/components/atoms/button'
 import { authClient } from '@/lib/auth/client'
 import { useRouter } from 'next/navigation'
 import { useToast } from '@/hooks/use-toast'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/atoms/dropdown-menu'
+import { useEffect, useMemo, useState } from 'react'
 
 // App navigation configuration
 const nav = [
@@ -34,10 +43,21 @@ const nav = [
   },
 ]
 
-export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+type ProjectItem = { id: string; name: string; createdAt?: string }
+
+export function AppSidebar({
+  projects: projectsProp,
+  ...sidebarProps
+}: React.ComponentProps<typeof Sidebar> & {
+  projects: ProjectItem[]
+}) {
   const pathname = usePathname()
   const router = useRouter()
   const { toast } = useToast()
+  const [projects, setProjects] = useState<Array<ProjectItem>>([])
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null)
+
+  const isLoadingProjects = false
 
   const isActive = (href: string) => {
     return pathname === href || (href !== '/' && pathname.startsWith(href))
@@ -61,22 +81,72 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     }
   }
 
+  useEffect(() => {
+    const incoming = Array.isArray(projectsProp) ? projectsProp : []
+    setProjects(incoming)
+    if (incoming.length > 0 && !selectedProjectId) {
+      setSelectedProjectId(incoming[0].id)
+    }
+    if (incoming.length === 0) {
+      setSelectedProjectId(null)
+    }
+  }, [projectsProp, selectedProjectId])
+
+  const selectedProject = useMemo(
+    () => projects.find((p) => p.id === selectedProjectId) || null,
+    [projects, selectedProjectId],
+  )
+
   return (
-    <Sidebar {...props}>
+    <Sidebar {...sidebarProps}>
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton size="lg" asChild>
-              <Link href="/dashboard">
-                <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
-                  <GalleryVerticalEnd className="size-4" />
-                </div>
-                <div className="flex flex-col gap-0.5 leading-none">
-                  <span className="font-medium">NS Admin</span>
-                  <span className="">v1.0.0</span>
-                </div>
-              </Link>
-            </SidebarMenuButton>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <SidebarMenuButton
+                  size="lg"
+                  className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+                >
+                  <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
+                    <GalleryVerticalEnd className="size-4" />
+                  </div>
+                  <div className="flex min-w-0 flex-col gap-0.5 leading-none">
+                    <span className="truncate font-medium">
+                      {isLoadingProjects
+                        ? 'Loading projects...'
+                        : selectedProject?.name ||
+                          (projects.length === 0 ? 'No projects' : 'Select project')}
+                    </span>
+                    <span className="text-xs text-muted-foreground truncate">Project</span>
+                  </div>
+                  <ChevronsUpDown className="ml-auto" />
+                </SidebarMenuButton>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                className="w-[--radix-dropdown-menu-trigger-width]"
+                align="start"
+              >
+                <DropdownMenuLabel>Projects</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {projects.length === 0 ? (
+                  <DropdownMenuItem disabled>No projects available</DropdownMenuItem>
+                ) : (
+                  projects.map((p) => (
+                    <DropdownMenuItem
+                      key={p.id}
+                      onSelect={(e) => {
+                        e.preventDefault()
+                        setSelectedProjectId(p.id)
+                      }}
+                    >
+                      {p.name}
+                      {p.id === selectedProjectId && <Check className="ml-auto" />}
+                    </DropdownMenuItem>
+                  ))
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>

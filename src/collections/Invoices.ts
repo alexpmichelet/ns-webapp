@@ -11,13 +11,26 @@ export const Invoices: CollectionConfig = {
     group: 'Work Management',
   },
   access: {
-    // Clients can see their own invoices, admins see all
-    read: ({ req: { user } }) => {
+    // Company members can see their company invoices, admins see all
+    read: async ({ req }) => {
+      const user = req.user as any
       if (!user) return false
       if (user.role === 'admin') return true
+
+      const companies = await req.payload.find({
+        collection: 'payload-companies',
+        where: {
+          members: {
+            contains: user.id,
+          },
+        },
+        limit: 100,
+      })
+      const companyIds = companies.docs.map((c: any) => c.id)
+      if (companyIds.length === 0) return false
       return {
         client: {
-          equals: user.id,
+          in: companyIds,
         },
       }
     },
@@ -49,15 +62,10 @@ export const Invoices: CollectionConfig = {
     {
       name: 'client',
       type: 'relationship',
-      relationTo: 'payload-users',
+      relationTo: 'payload-companies' as any,
       required: true,
       index: true,
       hasMany: false,
-      filterOptions: {
-        role: {
-          equals: 'client',
-        },
-      },
       admin: {
         position: 'sidebar',
       },

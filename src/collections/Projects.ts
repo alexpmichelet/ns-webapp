@@ -53,7 +53,7 @@ export const Projects: CollectionConfig = {
       relationTo: 'payload-users',
       required: true,
       index: true,
-      hasMany: false,
+      hasMany: true,
       filterOptions: {
         role: {
           equals: 'client',

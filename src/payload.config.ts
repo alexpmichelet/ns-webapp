@@ -14,6 +14,7 @@ import { Projects } from './collections/Projects'
 import { TimeLogs } from './collections/TimeLogs'
 import { Invoices } from './collections/Invoices'
 import { Notifications } from './collections/Notifications'
+import { Companies } from './collections/Companies'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -25,7 +26,8 @@ export default buildConfig({
       baseDir: path.resolve(dirname),
     },
   },
-  collections: [Users, Media, Projects, Tickets, TimeLogs, Invoices, Notifications],
+  serverURL: process.env.NEXT_PUBLIC_SERVER_URL,
+  collections: [Users, Media, Projects, Tickets, TimeLogs, Invoices, Notifications, Companies],
   editor: lexicalEditor(),
   secret: process.env.PAYLOAD_SECRET || '',
   typescript: {

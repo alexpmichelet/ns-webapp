@@ -1,5 +1,6 @@
 import React from 'react'
 import '../globals.css'
+import Providers from './providers'
 
 export const metadata = {
   description: 'Time & Materials Project Management System',
@@ -11,7 +12,9 @@ export default async function RootLayout(props: { children: React.ReactNode }) {
 
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <Providers>{children}</Providers>
+      </body>
     </html>
   )
 }

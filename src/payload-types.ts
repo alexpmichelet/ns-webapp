@@ -78,6 +78,7 @@ export interface Config {
     'payload-time-logs': PayloadTimeLog;
     'payload-invoices': PayloadInvoice;
     'payload-notifications': PayloadNotification;
+    'payload-companies': PayloadCompany;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
     'payload-migrations': PayloadMigration;
@@ -95,6 +96,7 @@ export interface Config {
     'payload-time-logs': PayloadTimeLogsSelect<false> | PayloadTimeLogsSelect<true>;
     'payload-invoices': PayloadInvoicesSelect<false> | PayloadInvoicesSelect<true>;
     'payload-notifications': PayloadNotificationsSelect<false> | PayloadNotificationsSelect<true>;
+    'payload-companies': PayloadCompaniesSelect<false> | PayloadCompaniesSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
     'payload-migrations': PayloadMigrationsSelect<false> | PayloadMigrationsSelect<true>;
@@ -137,12 +139,14 @@ export interface PayloadUserAuthOperations {
  */
 export interface PayloadUser {
   id: string;
-  company?: string | null;
+  /**
+   * Company this user belongs to
+   */
+  company?: (string | null) | PayloadCompany;
   /**
    * Rate in USD per hour
    */
-  hourlyRate?: number | null;
-  stripeCustomerId?: string | null;
+  hourlyRate: number;
   /**
    * Users chosen display name
    */
@@ -177,6 +181,24 @@ export interface PayloadUser {
    * The date and time when the ban will expire
    */
   banExpires?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payload-companies".
+ */
+export interface PayloadCompany {
+  id: string;
+  name: string;
+  /**
+   * Users that belong to this company
+   */
+  members?: (string | PayloadUser)[] | null;
+  /**
+   * Stripe Customer ID used for billing
+   */
+  stripeCustomerId?: string | null;
+  updatedAt: string;
+  createdAt: string;
 }
 /**
  * Sessions are active sessions for users. They are used to authenticate users with a session token
@@ -327,7 +349,7 @@ export interface PayloadProject {
   name: string;
   description?: string | null;
   status: 'active' | 'paused' | 'completed' | 'archived';
-  clientId: string | PayloadUser;
+  clientId: (string | PayloadUser)[];
   updatedAt: string;
   createdAt: string;
 }
@@ -468,7 +490,7 @@ export interface PayloadTimeLog {
 export interface PayloadInvoice {
   id: string;
   invoiceNumber: string;
-  client: string | PayloadUser;
+  client: string | PayloadCompany;
   status: 'draft' | 'pending' | 'paid' | 'overdue' | 'cancelled';
   /**
    * Tickets included in this invoice
@@ -609,6 +631,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'payload-notifications';
         value: string | PayloadNotification;
+      } | null)
+    | ({
+        relationTo: 'payload-companies';
+        value: string | PayloadCompany;
       } | null);
   globalSlug?: string | null;
   user: {
@@ -659,7 +685,6 @@ export interface PayloadMigration {
 export interface PayloadUsersSelect<T extends boolean = true> {
   company?: T;
   hourlyRate?: T;
-  stripeCustomerId?: T;
   name?: T;
   email?: T;
   emailVerified?: T;
@@ -860,6 +885,17 @@ export interface PayloadNotificationsSelect<T extends boolean = true> {
   message?: T;
   isRead?: T;
   relatedTicket?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payload-companies_select".
+ */
+export interface PayloadCompaniesSelect<T extends boolean = true> {
+  name?: T;
+  members?: T;
+  stripeCustomerId?: T;
   updatedAt?: T;
   createdAt?: T;
 }

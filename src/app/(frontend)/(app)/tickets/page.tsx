@@ -1,11 +1,10 @@
 'use client'
-import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { authClient } from '@/lib/auth/client'
 import { Button } from '@/components/atoms/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/atoms/card'
 import { Badge } from '@/components/atoms/badge'
+import { payloadHook } from '@/lib/data/payload'
 
 const statusColors: Record<string, string> = {
   pending_review: 'bg-blue-500',
@@ -26,41 +25,26 @@ const priorityColors: Record<string, string> = {
 }
 
 export default function TicketsPage() {
-  const router = useRouter()
   const session = authClient.useSession()
-  const [tickets, setTickets] = useState<any[]>([])
+  const user = session?.data?.user as { id: string } | undefined
 
-  useEffect(() => {
-    const user = session?.data?.user as { id: string } | undefined
-    if (!user) {
-      router.replace('/sign-in')
-    }
-  }, [session?.data?.user, router])
+  const { data: ticketsResult, isLoading } = payloadHook.find(
+    {
+      collection: 'payload-tickets',
+      where: user?.id
+        ? {
+            client: {
+              equals: user.id,
+            },
+          }
+        : {},
+      limit: 100,
+      sort: '-createdAt',
+    } as any,
+    { enabled: !!user?.id },
+  )
 
-  useEffect(() => {
-    const user = session?.data?.user as { id: string } | undefined
-    if (!user?.id) return
-
-    const fetchTickets = async () => {
-      try {
-        const res = await fetch(`/api/tickets?clientId=${user.id}&limit=100`, { cache: 'no-store' })
-        const json = await res.json()
-        const docs = Array.isArray(json.tickets) ? json.tickets : []
-        // Filter client-side just in case API doesn't filter by clientId
-        const filtered = docs.filter((t: any) => {
-          const client = t.client
-          if (!client) return false
-          if (typeof client === 'string') return client === user.id
-          return client.id === user.id
-        })
-        setTickets(filtered)
-      } catch (e) {
-        setTickets([])
-      }
-    }
-
-    fetchTickets()
-  }, [session?.data?.user?.id])
+  const tickets = Array.isArray((ticketsResult as any)?.docs) ? (ticketsResult as any).docs : []
 
   return (
     <div className="container mx-auto py-8">
@@ -74,7 +58,13 @@ export default function TicketsPage() {
         </Link>
       </div>
 
-      {tickets.length === 0 ? (
+      {isLoading ? (
+        <Card>
+          <CardContent className="py-12 text-center">
+            <p className="text-muted-foreground">Loading tickets...</p>
+          </CardContent>
+        </Card>
+      ) : tickets.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center">
             <p className="text-muted-foreground mb-4">

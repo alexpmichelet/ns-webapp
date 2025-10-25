@@ -39,9 +39,12 @@ export const Users: CollectionConfig = {
   fields: [
     {
       name: 'company',
-      type: 'text',
+      type: 'relationship',
+      relationTo: 'payload-companies',
+      required: false,
+      hasMany: false,
       admin: {
-        condition: (data) => data?.role === 'client',
+        description: 'Company this user belongs to',
       },
     },
     {
@@ -51,22 +54,10 @@ export const Users: CollectionConfig = {
       defaultValue: 100,
       admin: {
         description: 'Rate in USD per hour',
-        condition: (data) => data?.role === 'client',
       },
       access: {
         // Only admins can modify rates
         update: ({ req: { user } }) => user?.role === 'admin',
-      },
-    },
-    {
-      name: 'stripeCustomerId',
-      type: 'text',
-      admin: {
-        readOnly: true,
-        condition: (data) => data?.role === 'client',
-      },
-      access: {
-        read: ({ req: { user } }) => user?.role === 'admin',
       },
     },
   ],

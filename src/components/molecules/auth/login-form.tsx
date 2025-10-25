@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Field, FieldDescription, FieldGroup, FieldLabel } from '@/components/atoms/field'
 import { Input } from '@/components/atoms/input'
 import { useState } from 'react'
+import Link from 'next/link'
 import { authClient } from '@/lib/auth/client'
 import { useRouter } from 'next/navigation'
 import { useToast } from '@/hooks/use-toast'
@@ -138,6 +139,9 @@ export function LoginForm({ className, ...props }: React.ComponentProps<'div'>) 
                   <Button type="submit" disabled={isSubmitting}>
                     {isSubmitting ? 'Signing in...' : 'Login'}
                   </Button>
+                  <Link href="/forgot-password" className="text-sm underline self-center">
+                    Forgot password?
+                  </Link>
                 </div>
                 {formError ? (
                   <FieldDescription className="text-red-600">{formError}</FieldDescription>

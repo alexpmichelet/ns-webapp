@@ -90,12 +90,32 @@ export const auth = betterAuthPlugin({
   betterAuthOptions: {
     appName: 'ns-webapp',
     baseURL: process.env.NEXT_PUBLIC_SERVER_URL,
-    trustedOrigins: [process.env.NEXT_PUBLIC_SERVER_URL!],
+    trustedOrigins: [
+      process.env.NEXT_PUBLIC_SERVER_URL!,
+      'http://localhost:3000',
+      'http://127.0.0.1:3000',
+    ],
     secret: process.env.BETTER_AUTH_SECRET,
     emailAndPassword: {
       enabled: true,
       disableSignUp: false,
       requireEmailVerification: false,
+      sendResetPassword: async ({ user, url, token }) => {
+        try {
+          console.log('\n🔐 Password reset requested')
+          console.log(`   User: ${user.email}`)
+          console.log(`   Link: ${url}`)
+          console.log(`   Token: ${token}`)
+          console.log('')
+        } catch (err) {
+          console.error('[sendResetPassword] Failed to log reset link', err)
+        }
+      },
+      onPasswordReset: async ({ user }) => {
+        try {
+          console.log(`✅ Password successfully reset for ${user.email}`)
+        } catch {}
+      },
     },
     /* socialProviders: {
       google: {
@@ -107,7 +127,7 @@ export const auth = betterAuthPlugin({
       additionalFields: {
         role: {
           type: 'string',
-          defaultValue: 'user',
+          defaultValue: 'client',
           input: false,
         },
       },
