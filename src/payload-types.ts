@@ -76,7 +76,6 @@ export interface Config {
     'payload-projects': PayloadProject;
     'payload-tickets': PayloadTicket;
     'payload-time-logs': PayloadTimeLog;
-    'payload-invoices': PayloadInvoice;
     'payload-notifications': PayloadNotification;
     'payload-companies': PayloadCompany;
     'payload-locked-documents': PayloadLockedDocument;
@@ -94,7 +93,6 @@ export interface Config {
     'payload-projects': PayloadProjectsSelect<false> | PayloadProjectsSelect<true>;
     'payload-tickets': PayloadTicketsSelect<false> | PayloadTicketsSelect<true>;
     'payload-time-logs': PayloadTimeLogsSelect<false> | PayloadTimeLogsSelect<true>;
-    'payload-invoices': PayloadInvoicesSelect<false> | PayloadInvoicesSelect<true>;
     'payload-notifications': PayloadNotificationsSelect<false> | PayloadNotificationsSelect<true>;
     'payload-companies': PayloadCompaniesSelect<false> | PayloadCompaniesSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
@@ -446,7 +444,7 @@ export interface PayloadTimeLog {
    * Calculated: hours × hourlyRate
    */
   totalAmount: number;
-  invoice?: (string | null) | PayloadInvoice;
+  invoice?: (string | null) | PayloadCompany;
   isInvoiced?: boolean | null;
   tags?:
     | {
@@ -456,75 +454,6 @@ export interface PayloadTimeLog {
     | null;
   /**
    * Additional time log metadata
-   */
-  metadata?:
-    | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
-    | null;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "payload-invoices".
- */
-export interface PayloadInvoice {
-  id: string;
-  invoiceNumber: string;
-  client: string | PayloadCompany;
-  status: 'draft' | 'pending' | 'paid' | 'overdue' | 'cancelled';
-  /**
-   * Tickets included in this invoice
-   */
-  tickets: (string | PayloadTicket)[];
-  /**
-   * Time logs included (auto-populated from tickets)
-   */
-  timeLogs?: (string | PayloadTimeLog)[] | null;
-  lineItems?:
-    | {
-        description: string;
-        hours: number;
-        rate: number;
-        amount: number;
-        id?: string | null;
-      }[]
-    | null;
-  subtotal: number;
-  /**
-   * Tax rate as percentage (e.g., 10 for 10%)
-   */
-  taxRate?: number | null;
-  taxAmount: number;
-  totalAmount: number;
-  issueDate: string;
-  dueDate: string;
-  paidAt?: string | null;
-  /**
-   * Internal notes (not shown to client)
-   */
-  notes?: string | null;
-  /**
-   * Payment terms shown on invoice
-   */
-  terms?: string | null;
-  stripeInvoiceId?: string | null;
-  stripePaymentIntentId?: string | null;
-  /**
-   * Stripe payment link sent to client
-   */
-  paymentUrl?: string | null;
-  /**
-   * URL to generated PDF invoice
-   */
-  pdfUrl?: string | null;
-  /**
-   * Additional invoice metadata
    */
   metadata?:
     | {
@@ -609,10 +538,6 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'payload-time-logs';
         value: string | PayloadTimeLog;
-      } | null)
-    | ({
-        relationTo: 'payload-invoices';
-        value: string | PayloadInvoice;
       } | null)
     | ({
         relationTo: 'payload-notifications';
@@ -819,42 +744,6 @@ export interface PayloadTimeLogsSelect<T extends boolean = true> {
         tag?: T;
         id?: T;
       };
-  metadata?: T;
-  updatedAt?: T;
-  createdAt?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "payload-invoices_select".
- */
-export interface PayloadInvoicesSelect<T extends boolean = true> {
-  invoiceNumber?: T;
-  client?: T;
-  status?: T;
-  tickets?: T;
-  timeLogs?: T;
-  lineItems?:
-    | T
-    | {
-        description?: T;
-        hours?: T;
-        rate?: T;
-        amount?: T;
-        id?: T;
-      };
-  subtotal?: T;
-  taxRate?: T;
-  taxAmount?: T;
-  totalAmount?: T;
-  issueDate?: T;
-  dueDate?: T;
-  paidAt?: T;
-  notes?: T;
-  terms?: T;
-  stripeInvoiceId?: T;
-  stripePaymentIntentId?: T;
-  paymentUrl?: T;
-  pdfUrl?: T;
   metadata?: T;
   updatedAt?: T;
   createdAt?: T;

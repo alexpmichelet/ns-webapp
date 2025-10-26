@@ -11,7 +11,6 @@ export default function AdminDashboard() {
     activeTickets: 0,
     pendingApproval: 0,
     uninvoicedHours: 0,
-    pendingInvoices: 0,
     monthlyRevenue: 0,
   })
 
@@ -53,15 +52,7 @@ export default function AdminDashboard() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pending Payment</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.pendingInvoices}</div>
-            <p className="text-xs text-muted-foreground">Invoices sent</p>
-          </CardContent>
-        </Card>
+        {/* Pending Invoices widget removed */}
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">

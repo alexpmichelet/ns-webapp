@@ -139,7 +139,7 @@ export const TimeLogs: CollectionConfig = {
     {
       name: 'invoice',
       type: 'relationship',
-      relationTo: 'payload-invoices',
+      relationTo: 'payload-companies',
       hasMany: false,
       admin: {
         readOnly: true,

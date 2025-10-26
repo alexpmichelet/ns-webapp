@@ -12,7 +12,6 @@ import { Media } from './collections/Media'
 import { Tickets } from './collections/Tickets'
 import { Projects } from './collections/Projects'
 import { TimeLogs } from './collections/TimeLogs'
-import { Invoices } from './collections/Invoices'
 import { Notifications } from './collections/Notifications'
 import { Companies } from './collections/Companies'
 
@@ -27,7 +26,7 @@ export default buildConfig({
     },
   },
   serverURL: process.env.NEXT_PUBLIC_SERVER_URL,
-  collections: [Users, Media, Projects, Tickets, TimeLogs, Invoices, Notifications, Companies],
+  collections: [Users, Media, Projects, Tickets, TimeLogs, Notifications, Companies],
   editor: lexicalEditor(),
   secret: process.env.PAYLOAD_SECRET || '',
   typescript: {
