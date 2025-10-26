@@ -21,19 +21,6 @@ export async function createTicket(data: {
       },
     })
 
-    // Create notification for admin
-    await payload.create({
-      collection: 'payload-notifications',
-      data: {
-        recipient: process.env.ADMIN_USER_ID || '',
-        type: 'ticket_created',
-        title: 'New Ticket Created',
-        message: `A new ticket "${data.title}" has been created.`,
-        relatedTicket: ticket.id,
-        project: data.project,
-      },
-    })
-
     revalidatePath('/tickets')
     revalidatePath('/dashboard')
     return { success: true, ticket }
@@ -91,20 +78,7 @@ export async function approveTicket(ticketId: string) {
       collection: 'payload-tickets',
       id: ticketId,
       data: {
-        status: 'done',
-      },
-    })
-
-    // Create notification for admin
-    await payload.create({
-      collection: 'payload-notifications',
-      data: {
-        recipient: process.env.ADMIN_USER_ID || '',
-        type: 'ticket_approved',
-        title: 'Ticket Approved',
-        message: `Ticket "${ticket.title}" has been approved by the client.`,
-        relatedTicket: ticketId,
-        project: typeof ticket.project === 'string' ? ticket.project : ticket.project?.id,
+        status: 'ready_to_develop',
       },
     })
 
@@ -139,19 +113,7 @@ export async function requestRevision(ticketId: string, reason: string) {
       data: {
         isRevision: true,
         revisionCount: (ticket.revisionCount || 0) + 1,
-      },
-    })
-
-    // Create notification for admin
-    await payload.create({
-      collection: 'payload-notifications',
-      data: {
-        recipient: process.env.ADMIN_USER_ID || '',
-        type: 'revision_requested',
-        title: 'Revision Requested',
-        message: `Client has requested revisions for ticket "${ticket.title}". Reason: ${reason}`,
-        relatedTicket: ticketId,
-        project: typeof ticket.project === 'string' ? ticket.project : ticket.project?.id,
+        status: 'to_estimate',
       },
     })
 
@@ -186,45 +148,6 @@ export async function submitEstimate(params: {
         status: 'needs_client_review',
       },
     })
-
-    // Notify client that estimate is ready
-    const clientId = typeof existing.client === 'string' ? existing.client : existing.client?.id
-    const projectId = typeof existing.project === 'string' ? existing.project : existing.project?.id
-    if (clientId) {
-      await payload.create({
-        collection: 'payload-notifications',
-        data: {
-          recipient: clientId,
-          type: 'estimate_ready',
-          title: 'Estimate Ready',
-          message:
-            `Ticket "${existing.title}" has a new estimate: ${params.estimatedHours}h. ${params.breakdown}`.slice(
-              0,
-              250,
-            ),
-          relatedTicket: params.ticketId,
-          project: projectId,
-        },
-      })
-    }
-
-    // Optional internal note to admin
-    if (params.internalNotes && process.env.ADMIN_USER_ID) {
-      await payload.create({
-        collection: 'payload-notifications',
-        data: {
-          recipient: process.env.ADMIN_USER_ID,
-          type: 'estimate_ready',
-          title: 'Internal Estimate Notes',
-          message: `Ticket ${existing.ticketNumber || existing.id}: ${params.internalNotes}`.slice(
-            0,
-            250,
-          ),
-          relatedTicket: params.ticketId,
-          project: projectId,
-        },
-      })
-    }
 
     revalidatePath('/tickets/estimation-queue')
     revalidatePath('/dashboard')

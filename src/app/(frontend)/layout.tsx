@@ -1,6 +1,7 @@
 import React from 'react'
 import '../globals.css'
 import Providers from './providers'
+import { Toaster } from '@/components/atoms/sonner'
 
 export const metadata = {
   description: 'Time & Materials Project Management System',
@@ -13,7 +14,10 @@ export default async function RootLayout(props: { children: React.ReactNode }) {
   return (
     <html lang="en">
       <body>
-        <Providers>{children}</Providers>
+        <Providers>
+          {children}
+          <Toaster richColors position="top-right" closeButton />
+        </Providers>
       </body>
     </html>
   )

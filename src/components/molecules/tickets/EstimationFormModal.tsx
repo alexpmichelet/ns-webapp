@@ -24,8 +24,8 @@ import {
   FormMessage,
 } from '@/components/atoms/form'
 import { useToast } from '@/hooks/use-toast'
-import { submitEstimate } from '@/app/actions/tickets'
-import { PayloadTicket } from '@/payload-types'
+import { payloadHook } from '@/lib/data/payload'
+import { PayloadTicket, PayloadTicketsSelect } from '@/payload-types'
 
 const schema = z.object({
   estimatedHours: z.number({ message: 'Enter a number' }).positive('Hours must be positive'),
@@ -44,6 +44,17 @@ type Props = {
 export default function EstimationFormModal({ ticket, open, onOpenChange }: Props) {
   const { toast } = useToast()
   const [submitting, setSubmitting] = useState(false)
+  const updateMutation = payloadHook.updateByID<'payload-tickets', PayloadTicketsSelect<true>>(
+    'payload-tickets',
+    {
+      onError: (error) =>
+        toast({
+          title: 'Error',
+          description: error.message || 'Failed to submit estimate',
+          variant: 'destructive',
+        }),
+    },
+  )
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -64,23 +75,19 @@ export default function EstimationFormModal({ ticket, open, onOpenChange }: Prop
 
   async function onSubmit(values: FormValues) {
     setSubmitting(true)
-    const result = await submitEstimate({
-      ticketId: ticket!.id,
-      estimatedHours: values.estimatedHours,
-      breakdown: values.breakdown,
-      internalNotes: values.internalNotes,
-    })
-    if (result.success) {
+    try {
+      await updateMutation.mutateAsync({
+        id: ticket!.id,
+        data: {
+          estimatedHours: values.estimatedHours,
+          status: 'needs_client_review',
+        },
+      })
       toast({ title: 'Estimate submitted', description: 'Sent to client for review.' })
       onOpenChange(false)
-    } else {
-      toast({
-        title: 'Error',
-        description: result.error || 'Failed to submit estimate',
-        variant: 'destructive',
-      })
+    } finally {
+      setSubmitting(false)
     }
-    setSubmitting(false)
   }
 
   return (

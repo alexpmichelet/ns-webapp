@@ -54,7 +54,9 @@ export default function TicketsPage() {
     { enabled: isAdmin ? !!(user?.id && selectedProject?.id) : !!user?.id },
   )
 
-  const tickets = Array.isArray((ticketsResult as any)?.docs) ? (ticketsResult as any).docs : []
+  const tickets = Array.isArray((ticketsResult as any)?.docs)
+    ? (ticketsResult as any).docs.filter((t: any) => t.status !== 'cancelled')
+    : []
 
   return (
     <div className="container mx-auto py-8">

@@ -9,6 +9,7 @@ export type TicketStatus =
   | 'ready_to_test'
   | 'done'
   | 'paid_closed'
+  | 'cancelled'
 
 export const Tickets: CollectionConfig = {
   slug: 'payload-tickets',
@@ -106,6 +107,7 @@ export const Tickets: CollectionConfig = {
         { label: 'Ready To Test', value: 'ready_to_test' },
         { label: 'Done', value: 'done' },
         { label: 'Paid / Closed', value: 'paid_closed' },
+        { label: 'Cancelled', value: 'cancelled' },
       ],
       admin: {
         position: 'sidebar',

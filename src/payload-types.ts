@@ -369,7 +369,8 @@ export interface PayloadTicket {
     | 'development_in_progress'
     | 'ready_to_test'
     | 'done'
-    | 'paid_closed';
+    | 'paid_closed'
+    | 'cancelled';
   priority: 'low' | 'medium' | 'high' | 'absolute';
   /**
    * Estimated hours to complete

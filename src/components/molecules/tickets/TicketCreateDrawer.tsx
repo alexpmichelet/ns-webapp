@@ -26,6 +26,7 @@ import { z } from 'zod'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { payloadHook } from '@/lib/data/payload'
+import type { PayloadTicketsSelect } from '@/payload-types'
 import type { TicketPriority } from '@/collections/Tickets'
 import PrioritySelector from './PrioritySelector'
 import { Textarea } from '@/components/atoms/textarea'
@@ -35,9 +36,16 @@ import { authClient } from '@/lib/auth/client'
 
 type Props = {
   onCreated?: (ticketId: string) => void
+  onAfterSubmit?: (ticketId: string) => void
   triggerVariant?: 'default' | 'outline' | 'ghost'
   fullWidth?: boolean
   triggerLabel?: string
+  mode?: 'create' | 'edit'
+  ticketId?: string
+  initialValues?: Partial<TicketFormValues>
+  openProp?: boolean
+  onOpenPropChange?: (open: boolean) => void
+  hideTrigger?: boolean
 }
 
 const ticketSchema = z.object({
@@ -53,11 +61,21 @@ type TicketFormValues = z.infer<typeof ticketSchema>
 
 export default function TicketCreateDrawer({
   onCreated,
+  onAfterSubmit,
   triggerVariant = 'default',
   fullWidth,
   triggerLabel = 'Create New Ticket',
+  mode = 'create',
+  ticketId,
+  initialValues,
+  openProp,
+  onOpenPropChange,
+  hideTrigger,
 }: Props) {
-  const [open, setOpen] = useState(false)
+  const isControlled = typeof openProp === 'boolean'
+  const [uncontrolledOpen, setUncontrolledOpen] = useState(false)
+  const open = isControlled ? (openProp as boolean) : uncontrolledOpen
+  const setOpen = (v: boolean) => (isControlled ? onOpenPropChange?.(v) : setUncontrolledOpen(v))
   const [titleCount, setTitleCount] = useState(0)
   const { toast } = useToast()
   const session = authClient.useSession()
@@ -66,27 +84,39 @@ export default function TicketCreateDrawer({
   const form = useForm<TicketFormValues>({
     resolver: zodResolver(ticketSchema),
     defaultValues: {
-      project: '',
-      title: '',
-      description: '',
-      priority: 'medium',
-      attachments: [],
-      clientUserId: undefined,
+      project: initialValues?.project || '',
+      title: initialValues?.title || '',
+      description: initialValues?.description || '',
+      priority: (initialValues?.priority as TicketPriority) || 'medium',
+      attachments: initialValues?.attachments || [],
+      clientUserId: initialValues?.clientUserId,
     },
     mode: 'onChange',
   })
 
   const selectedProject = useSelectedProjectStore((s) => s.selectedProject)
 
-  // When dialog opens, prefill the project from the selected project if empty
+  // When dialog opens, prefill the project from the selected project or initial values
   useEffect(() => {
     if (open) {
       const currentProject = form.getValues('project')
-      if (!currentProject && selectedProject?.id) {
+      if (!currentProject && initialValues?.project) {
+        form.setValue('project', initialValues.project as string, { shouldValidate: true })
+      } else if (!currentProject && selectedProject?.id) {
         form.setValue('project', selectedProject.id, { shouldValidate: true })
       }
+      if (initialValues?.title)
+        form.setValue('title', initialValues.title, { shouldValidate: true })
+      if (initialValues?.description)
+        form.setValue('description', initialValues.description, { shouldValidate: true })
+      if (initialValues?.priority)
+        form.setValue('priority', initialValues.priority as TicketPriority, {
+          shouldValidate: true,
+        })
+      if (initialValues?.attachments)
+        form.setValue('attachments', initialValues.attachments as any, { shouldValidate: true })
     }
-  }, [open, selectedProject, form])
+  }, [open, selectedProject, form, initialValues])
 
   // Load projects current user has access to
   const { data: projectsData, isLoading: isLoadingProjects } = payloadHook.find<
@@ -126,22 +156,41 @@ export default function TicketCreateDrawer({
     return docs.map((d: any) => ({ id: d.id, label: d.name || d.email || d.id }))
   }, [clientsData])
 
-  const createMutation = payloadHook.create<'payload-tickets', any>('payload-tickets', {
-    onSuccess: (data: any) => {
-      const ticketNumber = data?.doc?.ticketNumber || data?.ticketNumber
-      const createdId = data?.doc?.id || data?.id
-      toast({
-        variant: 'success',
-        title: ticketNumber ? `Ticket ${ticketNumber} created` : 'Ticket created',
-      })
-      setOpen(false)
-      form.reset()
-      if (onCreated && createdId) onCreated(createdId)
+  const createMutation = payloadHook.create<'payload-tickets', PayloadTicketsSelect<true>>(
+    'payload-tickets',
+    {
+      onSuccess: (data: any) => {
+        const ticketNumber = data?.doc?.ticketNumber || data?.ticketNumber
+        const createdId = data?.doc?.id || data?.id
+        toast({
+          variant: 'success',
+          title: ticketNumber ? `Ticket ${ticketNumber} created` : 'Ticket created',
+        })
+        setOpen(false)
+        form.reset()
+        if (onCreated && createdId) onCreated(createdId)
+        if (onAfterSubmit && createdId) onAfterSubmit(createdId)
+      },
+      onError: (error) => {
+        toast({ variant: 'destructive', title: error.message || 'Failed to create ticket' })
+      },
     },
-    onError: (error) => {
-      toast({ variant: 'destructive', title: error.message || 'Failed to create ticket' })
+  )
+  const updateMutation = payloadHook.updateByID<'payload-tickets', PayloadTicketsSelect<true>>(
+    'payload-tickets',
+    {
+      onSuccess: (data) => {
+        const updatedId = (data as any)?.doc?.id || (data as any)?.id
+        toast({ variant: 'success', title: 'Ticket updated' })
+        setOpen(false)
+        form.reset()
+        if (onAfterSubmit && updatedId) onAfterSubmit(updatedId)
+      },
+      onError: (error) => {
+        toast({ variant: 'destructive', title: error.message || 'Failed to update ticket' })
+      },
     },
-  })
+  )
 
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
@@ -165,7 +214,7 @@ export default function TicketCreateDrawer({
   const onSubmit = form.handleSubmit(async (values) => {
     setIsSubmitting(true)
     try {
-      if (currentUser?.role === 'admin') {
+      if (currentUser?.role === 'admin' && mode === 'create') {
         if (!values.clientUserId) {
           toast({
             variant: 'destructive',
@@ -176,22 +225,36 @@ export default function TicketCreateDrawer({
           return
         }
       }
-      const payloadData: any = {
-        collection: 'payload-tickets',
-        data: {
-          title: values.title,
-          description: sanitizePlainText(values.description),
-          priority: values.priority as TicketPriority,
-          status: 'to_estimate',
-          project: values.project,
-          attachments: (values.attachments || []).map((a) => a.id),
-          estimatedHours: 0,
-          ...(currentUser?.role === 'client'
-            ? { createdBy: currentUser.id, client: currentUser.id }
-            : { createdBy: values.clientUserId, client: values.clientUserId }),
-        },
+      if (mode === 'edit' && ticketId) {
+        await updateMutation.mutateAsync({
+          id: ticketId,
+          data: {
+            title: values.title,
+            description: sanitizePlainText(values.description),
+            priority: values.priority as TicketPriority,
+            status: 'to_estimate',
+            project: values.project,
+            attachments: (values.attachments || []).map((a) => a.id),
+          },
+        })
+      } else {
+        const payloadData: any = {
+          collection: 'payload-tickets',
+          data: {
+            title: values.title,
+            description: sanitizePlainText(values.description),
+            priority: values.priority as TicketPriority,
+            status: 'to_estimate',
+            project: values.project,
+            attachments: (values.attachments || []).map((a) => a.id),
+            estimatedHours: 0,
+            ...(currentUser?.role === 'client'
+              ? { createdBy: currentUser.id, client: currentUser.id }
+              : { createdBy: values.clientUserId, client: values.clientUserId }),
+          },
+        }
+        await createMutation.mutateAsync(payloadData)
       }
-      await createMutation.mutateAsync(payloadData)
     } finally {
       setIsSubmitting(false)
     }
@@ -199,15 +262,23 @@ export default function TicketCreateDrawer({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button className={fullWidth ? 'w-full' : undefined} variant={triggerVariant}>
-          {triggerLabel}
-        </Button>
-      </DialogTrigger>
+      {hideTrigger ? null : (
+        <DialogTrigger asChild>
+          <Button className={fullWidth ? 'w-full' : undefined} variant={triggerVariant}>
+            {triggerLabel}
+          </Button>
+        </DialogTrigger>
+      )}
       <DialogContent className="sm:max-w-3xl max-h-[85vh] overflow-auto">
         <DialogHeader>
-          <DialogTitle>Create New Ticket</DialogTitle>
-          <DialogDescription>Submit a new request for your project</DialogDescription>
+          <DialogTitle>
+            {mode === 'edit' ? 'Update Ticket for Re-Estimate' : 'Create New Ticket'}
+          </DialogTitle>
+          <DialogDescription>
+            {mode === 'edit'
+              ? 'Modify details and send back to estimation'
+              : 'Submit a new request for your project'}
+          </DialogDescription>
         </DialogHeader>
         <form onSubmit={onSubmit} className="mt-6 flex flex-col gap-5">
           <FieldGroup>

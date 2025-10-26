@@ -30,12 +30,16 @@ export default function ClientDashboard() {
   }, [user?.id])
 
   const { activeTickets, completedTickets } = useMemo(() => {
-    const active = tickets.filter((t: any) => !['paid', 'cancelled'].includes(t.status)).length
-    const completed = tickets.filter((t: any) => t.status === 'paid').length
+    const active = tickets.filter((t: any) => !['paid_closed'].includes(t.status)).length
+    const completed = tickets.filter((t: any) => t.status === 'paid_closed').length
     return {
       activeTickets: active,
       completedTickets: completed,
     }
+  }, [tickets])
+
+  const pendingReviews = useMemo(() => {
+    return tickets.filter((t: any) => t.status === 'needs_client_review').length
   }, [tickets])
 
   if (!user) return null
@@ -70,6 +74,16 @@ export default function ClientDashboard() {
           </CardContent>
         </Card>
 
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Pending Reviews</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{pendingReviews}</div>
+            <p className="text-xs text-muted-foreground">Estimates awaiting your approval</p>
+          </CardContent>
+        </Card>
+
         {/* Invoices widgets removed */}
       </div>
 
@@ -82,6 +96,9 @@ export default function ClientDashboard() {
           <TicketCreateDrawer triggerLabel="Submit New Ticket" />
           <Link href="/tickets">
             <Button variant="outline">View All Tickets</Button>
+          </Link>
+          <Link href="/tickets/pending-reviews">
+            <Button>Pending Reviews</Button>
           </Link>
           {/* Invoice links removed */}
         </CardContent>
