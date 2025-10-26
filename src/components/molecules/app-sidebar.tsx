@@ -1,7 +1,17 @@
 'use client'
 
 import * as React from 'react'
-import { GalleryVerticalEnd, Check, ChevronsUpDown } from 'lucide-react'
+import {
+  GalleryVerticalEnd,
+  Check,
+  ChevronsUpDown,
+  LayoutDashboard,
+  Ticket,
+  SquarePlus,
+  Hourglass,
+  ListChecks,
+  FlaskConical,
+} from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
@@ -36,11 +46,17 @@ import { useSelectedProjectStore } from '@/hooks/use-selected-project'
 
 // App navigation configuration
 const nav = [
-  { title: 'Dashboard', url: '/dashboard' },
   {
     title: 'Tickets',
     url: '/tickets',
-    items: [{ title: 'All Tickets', url: '/tickets' }],
+    icon: Ticket,
+    items: [
+      { title: 'All Tickets', url: '/tickets', icon: Ticket },
+      { title: 'New Ticket', url: '/tickets/new', icon: SquarePlus },
+      { title: 'Estimation Queue', url: '/tickets/estimation-queue', icon: Hourglass },
+      { title: 'Pending Reviews', url: '/tickets/pending-reviews', icon: ListChecks },
+      { title: 'Testing', url: '/tickets/testing', icon: FlaskConical },
+    ],
   },
 ]
 
@@ -108,7 +124,7 @@ export function AppSidebar({
   }, [selectedProject, setSelectedProject])
 
   return (
-    <Sidebar {...sidebarProps}>
+    <Sidebar collapsible="icon" {...sidebarProps}>
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
@@ -164,26 +180,44 @@ export function AppSidebar({
       <SidebarContent>
         <SidebarGroup>
           <SidebarMenu>
-            {nav.map((item) => (
-              <SidebarMenuItem key={item.title}>
-                <SidebarMenuButton asChild isActive={isActive(item.url)}>
-                  <Link href={item.url} className="font-medium">
-                    {item.title}
-                  </Link>
-                </SidebarMenuButton>
-                {item.items?.length ? (
-                  <SidebarMenuSub>
-                    {item.items.map((sub) => (
-                      <SidebarMenuSubItem key={sub.title}>
-                        <SidebarMenuSubButton asChild isActive={isActive(sub.url)}>
-                          <Link href={sub.url}>{sub.title}</Link>
-                        </SidebarMenuSubButton>
-                      </SidebarMenuSubItem>
-                    ))}
-                  </SidebarMenuSub>
-                ) : null}
-              </SidebarMenuItem>
-            ))}
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild isActive={isActive('/dashboard')} tooltip="Dashboard">
+                <Link href="/dashboard" className="font-medium flex items-center gap-2">
+                  <LayoutDashboard className="size-4" />
+                  <span>Dashboard</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            {nav.map((item) => {
+              const Icon = (item as any).icon as React.ComponentType<any> | undefined
+              return (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton asChild isActive={isActive(item.url)} tooltip={item.title}>
+                    <Link href={item.url} className="font-medium flex items-center gap-2">
+                      {Icon ? <Icon className="size-4" /> : null}
+                      <span>{item.title}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                  {item.items?.length ? (
+                    <SidebarMenuSub>
+                      {item.items.map((sub) => {
+                        const SubIcon = (sub as any).icon as React.ComponentType<any> | undefined
+                        return (
+                          <SidebarMenuSubItem key={sub.title}>
+                            <SidebarMenuSubButton asChild isActive={isActive(sub.url)}>
+                              <Link href={sub.url} className="flex items-center gap-2">
+                                {SubIcon ? <SubIcon className="size-4" /> : null}
+                                <span>{sub.title}</span>
+                              </Link>
+                            </SidebarMenuSubButton>
+                          </SidebarMenuSubItem>
+                        )
+                      })}
+                    </SidebarMenuSub>
+                  ) : null}
+                </SidebarMenuItem>
+              )
+            })}
           </SidebarMenu>
         </SidebarGroup>
       </SidebarContent>

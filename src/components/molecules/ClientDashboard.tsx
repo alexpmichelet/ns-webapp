@@ -1,33 +1,29 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import { authClient } from '@/lib/auth/client'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/atoms/card'
 import { Button } from '@/components/atoms/button'
 import Link from 'next/link'
 import TicketCreateDrawer from '@/components/molecules/tickets/TicketCreateDrawer'
+import { payloadHook } from '@/lib/data/payload'
 
 export default function ClientDashboard() {
   const session = authClient.useSession()
   const user = session?.data?.user as { id: string; name: string; role: string } | undefined
 
-  const [tickets, setTickets] = useState<any[]>([])
-
-  useEffect(() => {
-    if (!user?.id) return
-    const fetchData = async () => {
-      try {
-        const ticketsRes = await fetch(`/api/tickets?clientId=${user.id}&limit=100`, {
-          cache: 'no-store',
-        })
-        const ticketsJson = await ticketsRes.json()
-        setTickets(Array.isArray(ticketsJson.tickets) ? ticketsJson.tickets : [])
-      } catch (e) {
-        setTickets([])
-      }
-    }
-    fetchData()
-  }, [user?.id])
+  const { data: ticketsRes } = payloadHook.find(
+    {
+      collection: 'payload-tickets',
+      where: {
+        client: { equals: user?.id },
+      },
+      limit: 100,
+      sort: '-createdAt',
+    } as any,
+    { enabled: !!user?.id },
+  )
+  const tickets = (ticketsRes as any)?.docs || []
 
   const { activeTickets, completedTickets } = useMemo(() => {
     const active = tickets.filter((t: any) => !['paid_closed'].includes(t.status)).length
@@ -99,6 +95,9 @@ export default function ClientDashboard() {
           </Link>
           <Link href="/tickets/pending-reviews">
             <Button>Pending Reviews</Button>
+          </Link>
+          <Link href="/tickets/testing">
+            <Button>Testing Dashboard</Button>
           </Link>
           {/* Invoice links removed */}
         </CardContent>

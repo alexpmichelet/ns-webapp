@@ -4,7 +4,6 @@ import { revalidatePath } from 'next/cache'
 import { getPayload } from 'payload'
 import config from '@payload-config'
 import type { TicketStatus } from '@/collections/Tickets'
-import { revalidateTag } from 'next/cache'
 
 export async function createTicket(data: {
   title: string

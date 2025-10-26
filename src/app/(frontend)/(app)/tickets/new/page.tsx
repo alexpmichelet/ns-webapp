@@ -25,7 +25,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/atoms/select'
-import { createTicket } from '@/app/actions/tickets'
+import { payloadHook } from '@/lib/data/payload'
 import { useToast } from '@/hooks/use-toast'
 
 const ticketSchema = z.object({
@@ -43,6 +43,8 @@ export default function NewTicketPage() {
   const { toast } = useToast()
   const [isSubmitting, setIsSubmitting] = useState(false)
 
+  const createTicketMutation = payloadHook.create('payload-tickets')
+
   const form = useForm<TicketFormData>({
     resolver: zodResolver(ticketSchema),
     defaultValues: {
@@ -58,15 +60,17 @@ export default function NewTicketPage() {
     setIsSubmitting(true)
 
     try {
-      const result = await createTicket({
-        title: data.title,
-        description: data.description,
-        project: data.project,
-        estimatedHours: data.estimatedHours,
-        priority: data.priority,
-      })
+      const result = await createTicketMutation.mutateAsync({
+        data: {
+          title: data.title,
+          description: data.description,
+          project: data.project,
+          estimatedHours: data.estimatedHours,
+          priority: data.priority,
+        },
+      } as any)
 
-      if (result.success) {
+      if (result) {
         toast({
           title: 'Ticket Created',
           description: 'Your support ticket has been submitted successfully.',
@@ -75,7 +79,7 @@ export default function NewTicketPage() {
       } else {
         toast({
           title: 'Error',
-          description: result.error || 'Failed to create ticket',
+          description: 'Failed to create ticket',
           variant: 'destructive',
         })
       }

@@ -32,6 +32,7 @@ import { Textarea } from '@/components/atoms/textarea'
 import FileUploadArea, { UploadedFile } from './FileUploadArea'
 import { useSelectedProjectStore } from '@/hooks/use-selected-project'
 import { authClient } from '@/lib/auth/client'
+import { payloadHook } from '@/lib/data/payload'
 
 type Props = {
   onCreated?: (ticketId: string) => void
@@ -118,83 +119,40 @@ export default function TicketCreateDrawer({
   }, [open, selectedProject, form, initialValues])
 
   // Load projects current user has access to
-  const [projectsData, setProjectsData] = useState<any>(null)
-  const [isLoadingProjects, setIsLoadingProjects] = useState<boolean>(false)
-  useEffect(() => {
-    if (!open) return
-    let mounted = true
-    const load = async () => {
-      setIsLoadingProjects(true)
-      try {
-        const res = await fetch('/api/projects?limit=100', { cache: 'no-store' })
-        const json = await res.json()
-        if (mounted) setProjectsData(json)
-      } catch {
-        if (mounted) setProjectsData({ docs: [] })
-      } finally {
-        if (mounted) setIsLoadingProjects(false)
-      }
-    }
-    load()
-    return () => {
-      mounted = false
-    }
-  }, [open])
+  const { data: projectsRes, isLoading: isLoadingProjects } = payloadHook.find(
+    {
+      collection: 'payload-projects',
+      limit: 100,
+      sort: 'name',
+    } as any,
+    { enabled: !!open },
+  )
 
   // Load clients list for admin selection
-  const [clientsData, setClientsData] = useState<any>(null)
-  const [isLoadingClients, setIsLoadingClients] = useState<boolean>(false)
-  useEffect(() => {
-    if (!open) return
-    let mounted = true
-    const load = async () => {
-      setIsLoadingClients(true)
-      try {
-        const res = await fetch('/api/users?role=client&limit=100', { cache: 'no-store' })
-        const json = await res.json()
-        if (mounted) setClientsData(json)
-      } catch {
-        if (mounted) setClientsData({ users: [] })
-      } finally {
-        if (mounted) setIsLoadingClients(false)
-      }
-    }
-    load()
-    return () => {
-      mounted = false
-    }
-  }, [open])
+  const { data: clientsRes, isLoading: isLoadingClients } = payloadHook.find(
+    {
+      collection: 'payload-users',
+      where: { role: { equals: 'client' } },
+      limit: 100,
+      sort: 'name',
+    } as any,
+    { enabled: !!open && currentUser?.role === 'admin' },
+  )
 
   const projects = useMemo(() => {
-    const docs = (projectsData as any)?.docs
+    const docs = (projectsRes as any)?.docs
     if (!Array.isArray(docs)) return [] as Array<{ id: string; name: string }>
     return docs.map((d: any) => ({ id: d.id, name: d.name }))
-  }, [projectsData])
+  }, [projectsRes])
 
   const clients = useMemo(() => {
-    const docs = (clientsData as any)?.docs
+    const docs = (clientsRes as any)?.docs
     if (!Array.isArray(docs)) return [] as Array<{ id: string; label: string }>
     return docs.map((d: any) => ({ id: d.id, label: d.name || d.email || d.id }))
-  }, [clientsData])
+  }, [clientsRes])
 
-  async function createTicket(payloadData: any) {
-    const res = await fetch('/api/tickets', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payloadData.data),
-    })
-    if (!res.ok) throw new Error('Failed to create ticket')
-    return await res.json()
-  }
-  async function updateTicket(id: string, data: any) {
-    const res = await fetch(`/api/tickets?id=${id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    })
-    if (!res.ok) throw new Error('Failed to update ticket')
-    return await res.json()
-  }
+  const createTicketMutation = payloadHook.create('payload-tickets')
+  const updateTicketMutation = payloadHook.updateByID('payload-tickets')
 
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
@@ -230,15 +188,18 @@ export default function TicketCreateDrawer({
         }
       }
       if (mode === 'edit' && ticketId) {
-        const updated = await updateTicket(ticketId, {
+        const updated = (await updateTicketMutation.mutateAsync({
+          id: ticketId,
           title: values.title,
-          description: sanitizePlainText(values.description),
-          priority: values.priority as TicketPriority,
-          status: 'to_estimate',
-          project: values.project,
-          attachments: (values.attachments || []).map((a) => a.id),
-        })
-        const updatedId = updated?.ticket?.id || updated?.id
+          data: {
+            description: sanitizePlainText(values.description),
+            priority: values.priority as TicketPriority,
+            status: 'to_estimate',
+            project: values.project,
+            attachments: (values.attachments || []).map((a) => a.id),
+          },
+        } as any)) as any
+        const updatedId = updated?.id
         toast({ variant: 'success', title: 'Ticket updated' })
         setOpen(false)
         form.reset()
@@ -256,9 +217,11 @@ export default function TicketCreateDrawer({
             ? { createdBy: currentUser.id, client: currentUser.id }
             : { createdBy: values.clientUserId, client: values.clientUserId }),
         }
-        const created = await createTicket({ data: payloadData })
-        const ticketNumber = created?.ticket?.ticketNumber || created?.ticketNumber
-        const createdId = created?.ticket?.id || created?.id
+        const created = (await createTicketMutation.mutateAsync({
+          data: payloadData,
+        } as any)) as any
+        const ticketNumber = created?.ticketNumber
+        const createdId = created?.id
         toast({
           variant: 'success',
           title: ticketNumber ? `Ticket ${ticketNumber} created` : 'Ticket created',

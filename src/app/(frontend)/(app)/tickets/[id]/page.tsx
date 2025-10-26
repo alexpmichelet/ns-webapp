@@ -15,8 +15,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/atoms/dialog'
-import { approveTicket, requestRevision } from '@/app/actions/tickets'
-import { getTimeLogsByTicket } from '@/app/actions/time-logs'
+import { payloadHook } from '@/lib/data/payload'
 import { useToast } from '@/hooks/use-toast'
 import { payloadHook } from '@/lib/data/payload'
 
@@ -46,28 +45,52 @@ export default function TicketDetailPage() {
     if (t) setTicket(t)
   }, [ticketRes])
 
+  const { data: timeLogsRes } = payloadHook.find(
+    {
+      collection: 'payload-time-logs',
+      where: {
+        ticket: { equals: params.id as string },
+      },
+      sort: '-date',
+      limit: 100,
+    } as any,
+    { enabled: !!params.id },
+  )
+
   useEffect(() => {
-    const loadTimeLogs = async () => {
-      if (!params.id) return
-      const timeLogsResult = await getTimeLogsByTicket(params.id as string)
-      if (timeLogsResult.success) setTimeLogs(timeLogsResult.timeLogs)
-    }
-    loadTimeLogs()
-  }, [params.id])
+    const docs = (timeLogsRes as any)?.docs
+    if (Array.isArray(docs)) setTimeLogs(docs)
+  }, [timeLogsRes])
+
+  const approveMutation = payloadHook.updateByID('payload-tickets')
+  const updateMutation = payloadHook.updateByID('payload-tickets')
 
   async function handleApprove() {
     setIsApproving(true)
-    const result = await approveTicket(params.id as string)
+    try {
+      const result = await approveMutation.mutateAsync({
+        id: params.id as string,
+        data: {
+          status: 'ready_to_develop',
+        },
+      } as any)
 
-    if (result.success) {
-      toast({
-        title: 'Ticket Approved',
-        description: 'The ticket has been approved successfully.',
-      })
-    } else {
+      if (result) {
+        toast({
+          title: 'Ticket Approved',
+          description: 'The ticket has been approved successfully.',
+        })
+      } else {
+        toast({
+          title: 'Error',
+          description: 'Failed to approve ticket',
+          variant: 'destructive',
+        })
+      }
+    } catch (e) {
       toast({
         title: 'Error',
-        description: result.error || 'Failed to approve ticket',
+        description: 'Failed to approve ticket',
         variant: 'destructive',
       })
     }
@@ -85,19 +108,34 @@ export default function TicketDetailPage() {
     }
 
     setIsRequestingRevision(true)
-    const result = await requestRevision(params.id as string, revisionReason)
+    try {
+      // increment revisionCount defensively on server; here we just set flags and status
+      const result = await updateMutation.mutateAsync({
+        id: params.id as string,
+        data: {
+          isRevision: true,
+          status: 'to_estimate',
+        },
+      } as any)
 
-    if (result.success) {
-      toast({
-        title: 'Revision Requested',
-        description: 'Your revision request has been submitted.',
-      })
-      setShowRevisionDialog(false)
-      setRevisionReason('')
-    } else {
+      if (result) {
+        toast({
+          title: 'Revision Requested',
+          description: 'Your revision request has been submitted.',
+        })
+        setShowRevisionDialog(false)
+        setRevisionReason('')
+      } else {
+        toast({
+          title: 'Error',
+          description: 'Failed to request revision',
+          variant: 'destructive',
+        })
+      }
+    } catch (e) {
       toast({
         title: 'Error',
-        description: result.error || 'Failed to request revision',
+        description: 'Failed to request revision',
         variant: 'destructive',
       })
     }

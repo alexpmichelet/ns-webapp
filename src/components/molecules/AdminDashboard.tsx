@@ -1,55 +1,48 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/atoms/card'
 import { Button } from '@/components/atoms/button'
 import Link from 'next/link'
 import { TicketKanbanBoard } from '@/components/molecules/TicketKanbanBoard'
+import { payloadHook } from '@/lib/data/payload'
 
 export default function AdminDashboard() {
-  const [counts, setCounts] = useState({ toEstimate: 0, needsReview: 0, active: 0 })
-  useEffect(() => {
-    let mounted = true
-    const load = async () => {
-      try {
-        const res = await fetch('/api/tickets?status=active&limit=1000', { cache: 'no-store' })
-        const json = await res.json()
-        const docs = Array.isArray(json.tickets) ? json.tickets : []
-        if (mounted) {
-          setCounts({
-            toEstimate: docs.filter((d: any) => d.status === 'to_estimate').length,
-            needsReview: docs.filter((d: any) => d.status === 'needs_client_review').length,
-            active: docs.filter((d: any) => d.status !== 'paid_closed').length,
-          })
-        }
-      } catch {}
+  const { data: ticketsRes } = payloadHook.find(
+    {
+      collection: 'payload-tickets',
+      where: { status: { not_equals: 'paid_closed' } },
+      limit: 1000,
+      sort: '-updatedAt',
+    } as any,
+    {
+      // @ts-ignore
+      refetchInterval: 60_000,
+    },
+  )
+
+  const counts = useMemo(() => {
+    const docs = (ticketsRes as any)?.docs || []
+    return {
+      toEstimate: docs.filter((d: any) => d.status === 'to_estimate').length,
+      needsReview: docs.filter((d: any) => d.status === 'needs_client_review').length,
+      active: docs.filter((d: any) => d.status !== 'paid_closed').length,
+      readyToTest: docs.filter((d: any) => d.status === 'ready_to_test').length,
     }
-    load()
-    const id = setInterval(load, 60_000)
-    return () => {
-      mounted = false
-      clearInterval(id)
-    }
-  }, [])
+  }, [ticketsRes])
 
   // Uninvoiced hours (sum of hours where isBillable && !isInvoiced)
-  const [uninvoicedLogs, setUninvoicedLogs] = useState<any[]>([])
-  useEffect(() => {
-    let mounted = true
-    const load = async () => {
-      try {
-        const res = await fetch('/api/time-logs?limit=1000', { cache: 'no-store' })
-        const json = await res.json()
-        if (mounted) setUninvoicedLogs(Array.isArray(json.timeLogs) ? json.timeLogs : [])
-      } catch {}
-    }
-    load()
-    const id = setInterval(load, 60_000)
-    return () => {
-      mounted = false
-      clearInterval(id)
-    }
-  }, [])
+  const { data: logsRes } = payloadHook.find(
+    {
+      collection: 'payload-time-logs',
+      limit: 1000,
+      sort: '-date',
+    } as any,
+    {
+      // @ts-ignore
+      refetchInterval: 60_000,
+    },
+  )
 
   // Monthly revenue (sum of totalAmount for this month where isBillable && isInvoiced)
   const startOfMonth = new Date()
@@ -59,37 +52,25 @@ export default function AdminDashboard() {
   endOfMonth.setMonth(endOfMonth.getMonth() + 1)
   endOfMonth.setMilliseconds(-1)
 
-  const [monthlyRevenueLogs, setMonthlyRevenueLogs] = useState<any[]>([])
-  useEffect(() => {
-    let mounted = true
-    const load = async () => {
-      try {
-        const res = await fetch('/api/time-logs?limit=1000', { cache: 'no-store' })
-        const json = await res.json()
-        if (!Array.isArray(json.timeLogs)) return
-        const filtered = json.timeLogs.filter(
-          (log: any) =>
-            log.isBillable &&
-            log.isInvoiced &&
-            log.date >= startOfMonth.toISOString() &&
-            log.date <= endOfMonth.toISOString(),
-        )
-        if (mounted) setMonthlyRevenueLogs(filtered)
-      } catch {}
-    }
-    load()
-    const id = setInterval(load, 60_000)
-    return () => {
-      mounted = false
-      clearInterval(id)
-    }
-  }, [])
+  const monthlyRevenueLogs = useMemo(() => {
+    const docs = (logsRes as any)?.docs || []
+    return docs.filter(
+      (log: any) =>
+        log.isBillable &&
+        log.isInvoiced &&
+        log.date >= startOfMonth.toISOString() &&
+        log.date <= endOfMonth.toISOString(),
+    )
+  }, [logsRes, startOfMonth, endOfMonth])
 
   const activeTickets = counts.active
   const pendingApproval = counts.needsReview
-  const uninvoicedHours = Array.isArray(uninvoicedLogs)
-    ? uninvoicedLogs.reduce((sum: number, log: any) => sum + (Number(log.hours) || 0), 0)
-    : 0
+  const readyToTest = counts.readyToTest
+  const uninvoicedHours = useMemo(() => {
+    const docs = (logsRes as any)?.docs || []
+    const filtered = docs.filter((log: any) => log.isBillable && !log.isInvoiced)
+    return filtered.reduce((sum: number, log: any) => sum + (Number(log.hours) || 0), 0)
+  }, [logsRes])
   const monthlyRevenue = Array.isArray(monthlyRevenueLogs)
     ? monthlyRevenueLogs.reduce((sum: number, log: any) => sum + (Number(log.totalAmount) || 0), 0)
     : 0
@@ -102,7 +83,7 @@ export default function AdminDashboard() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5 mb-8">
-        <Card>
+        {/* <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Active Tickets</CardTitle>
           </CardHeader>
@@ -110,7 +91,7 @@ export default function AdminDashboard() {
             <div className="text-2xl font-bold">{activeTickets}</div>
             <p className="text-xs text-muted-foreground">In progress</p>
           </CardContent>
-        </Card>
+        </Card> */}
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -121,6 +102,23 @@ export default function AdminDashboard() {
             <p className="text-xs text-muted-foreground">Awaiting client</p>
           </CardContent>
         </Card>
+
+        {/*  <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Ready To Test</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{readyToTest}</div>
+            <p className="text-xs text-muted-foreground">Client testing window</p>
+            <div className="mt-3">
+              <Link href="/tickets/testing">
+                <Button size="sm" variant="outline">
+                  Open Testing Dashboard
+                </Button>
+              </Link>
+            </div>
+          </CardContent>
+        </Card> */}
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">

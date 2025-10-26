@@ -1,13 +1,13 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Kanban } from '@/components/ui/shadcn-io/kanban'
-import { updateTicketStatus } from '@/app/actions/tickets'
 import { Badge } from '@/components/atoms/badge'
 import { useToast } from '@/hooks/use-toast'
 import type { DragEndEvent } from '@/components/ui/shadcn-io/kanban'
 import type { TicketStatus } from '@/collections/Tickets'
 import type { PayloadTicket } from '@/payload-types'
+import { payloadHook } from '@/lib/data/payload'
 
 type TicketItem = {
   id: string
@@ -33,34 +33,35 @@ export function TicketKanbanBoard() {
   const [tickets, setTickets] = useState<TicketItem[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
-  useEffect(() => {
-    loadTickets()
-  }, [])
+  const { data: ticketsRes, isLoading: loadingTickets } = payloadHook.find(
+    {
+      collection: 'payload-tickets',
+      where: { status: { not_equals: 'paid_closed' } },
+      limit: 1000,
+      sort: '-updatedAt',
+    } as any,
+    {
+      // @ts-ignore
+      refetchInterval: 60_000,
+    },
+  )
 
-  async function loadTickets() {
-    try {
-      // Fetch all active tickets (not invoiced or paid)
-      const response = await fetch('/api/tickets?status=active')
-      if (response.ok) {
-        const data = await response.json()
-        const formattedTickets = (data.tickets as PayloadTicket[]).map((ticket) => ({
-          id: String(ticket.id),
-          name: ticket.title,
-          column: ticket.status,
-          title: ticket.title,
-          priority: ticket.priority,
-          actualHours: ticket.actualHours || 0,
-          estimatedHours: ticket.estimatedHours,
-          client: ticket.client,
-        }))
-        setTickets(formattedTickets)
-      }
-    } catch (error) {
-      console.error('Error loading tickets:', error)
-    } finally {
-      setIsLoading(false)
-    }
-  }
+  useEffect(() => {
+    const docs = (ticketsRes as any)?.docs as PayloadTicket[] | undefined
+    if (!Array.isArray(docs)) return
+    const formattedTickets = docs.map((ticket) => ({
+      id: String(ticket.id),
+      name: ticket.title,
+      column: ticket.status,
+      title: ticket.title,
+      priority: ticket.priority,
+      actualHours: ticket.actualHours || 0,
+      estimatedHours: ticket.estimatedHours,
+      client: ticket.client,
+    }))
+    setTickets(formattedTickets)
+    setIsLoading(false)
+  }, [ticketsRes])
 
   async function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event
@@ -76,20 +77,20 @@ export function TicketKanbanBoard() {
     )
 
     // Update on server
-    const result = await updateTicketStatus(ticketId, newStatus)
-
-    if (!result.success) {
-      toast({
-        title: 'Error',
-        description: result.error || 'Failed to update ticket status',
-        variant: 'destructive',
-      })
-      // Revert on error
-      loadTickets()
-    } else {
+    try {
+      await payloadHook.updateByID('payload-tickets').mutateAsync({
+        id: ticketId,
+        data: { status: newStatus },
+      } as any)
       toast({
         title: 'Ticket Updated',
         description: `Ticket moved to ${newStatus.replace('_', ' ')}`,
+      })
+    } catch (e) {
+      toast({
+        title: 'Error',
+        description: 'Failed to update ticket status',
+        variant: 'destructive',
       })
     }
   }
