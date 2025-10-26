@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import payload from '@/payload'
 import type { TicketStatus } from '@/collections/Tickets'
+import { revalidateTag } from 'next/cache'
 
 export async function createTicket(data: {
   title: string
@@ -34,6 +35,7 @@ export async function createTicket(data: {
     })
 
     revalidatePath('/tickets')
+    revalidatePath('/dashboard')
     return { success: true, ticket }
   } catch (error) {
     console.error('Error creating ticket:', error)
@@ -74,6 +76,7 @@ export async function updateTicketStatus(ticketId: string, status: TicketStatus)
     })
 
     revalidatePath('/tickets')
+    revalidatePath('/dashboard')
     revalidatePath(`/tickets/${ticketId}`)
     return { success: true, ticket: updatedTicket }
   } catch (error) {
@@ -106,6 +109,7 @@ export async function approveTicket(ticketId: string) {
     })
 
     revalidatePath('/tickets')
+    revalidatePath('/dashboard')
     revalidatePath(`/tickets/${ticketId}`)
     return { success: true, ticket }
   } catch (error) {
@@ -152,11 +156,83 @@ export async function requestRevision(ticketId: string, reason: string) {
     })
 
     revalidatePath('/tickets')
+    revalidatePath('/dashboard')
     revalidatePath(`/tickets/${ticketId}`)
     return { success: true, ticket: updatedTicket }
   } catch (error) {
     console.error('Error requesting revision:', error)
     return { success: false, error: 'Failed to request revision' }
+  }
+}
+
+export async function submitEstimate(params: {
+  ticketId: string
+  estimatedHours: number
+  breakdown: string
+  internalNotes?: string
+}) {
+  try {
+    const existing = await payload.findByID({
+      collection: 'payload-tickets',
+      id: params.ticketId,
+    })
+
+    // Update estimate and move status to needs_client_review
+    const updated = await payload.update({
+      collection: 'payload-tickets',
+      id: params.ticketId,
+      data: {
+        estimatedHours: params.estimatedHours,
+        status: 'needs_client_review',
+      },
+    })
+
+    // Notify client that estimate is ready
+    const clientId = typeof existing.client === 'string' ? existing.client : existing.client?.id
+    const projectId = typeof existing.project === 'string' ? existing.project : existing.project?.id
+    if (clientId) {
+      await payload.create({
+        collection: 'payload-notifications',
+        data: {
+          recipient: clientId,
+          type: 'estimate_ready',
+          title: 'Estimate Ready',
+          message:
+            `Ticket "${existing.title}" has a new estimate: ${params.estimatedHours}h. ${params.breakdown}`.slice(
+              0,
+              250,
+            ),
+          relatedTicket: params.ticketId,
+          project: projectId,
+        },
+      })
+    }
+
+    // Optional internal note to admin
+    if (params.internalNotes && process.env.ADMIN_USER_ID) {
+      await payload.create({
+        collection: 'payload-notifications',
+        data: {
+          recipient: process.env.ADMIN_USER_ID,
+          type: 'estimate_ready',
+          title: 'Internal Estimate Notes',
+          message: `Ticket ${existing.ticketNumber || existing.id}: ${params.internalNotes}`.slice(
+            0,
+            250,
+          ),
+          relatedTicket: params.ticketId,
+          project: projectId,
+        },
+      })
+    }
+
+    revalidatePath('/tickets/estimation-queue')
+    revalidatePath('/dashboard')
+    revalidatePath(`/tickets/${params.ticketId}`)
+    return { success: true, ticket: updated }
+  } catch (error) {
+    console.error('Error submitting estimate:', error)
+    return { success: false, error: 'Failed to submit estimate' }
   }
 }
 
