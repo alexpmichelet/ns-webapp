@@ -25,7 +25,6 @@ import { useToast } from '@/hooks/use-toast'
 import { z } from 'zod'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { payloadHook } from '@/lib/data/payload'
 import type { PayloadTicketsSelect } from '@/payload-types'
 import type { TicketPriority } from '@/collections/Tickets'
 import PrioritySelector from './PrioritySelector'
@@ -119,30 +118,52 @@ export default function TicketCreateDrawer({
   }, [open, selectedProject, form, initialValues])
 
   // Load projects current user has access to
-  const { data: projectsData, isLoading: isLoadingProjects } = payloadHook.find<
-    'payload-projects',
-    any
-  >({
-    collection: 'payload-projects',
-    limit: 100,
-    page: 1,
-    depth: 0,
-  })
+  const [projectsData, setProjectsData] = useState<any>(null)
+  const [isLoadingProjects, setIsLoadingProjects] = useState<boolean>(false)
+  useEffect(() => {
+    if (!open) return
+    let mounted = true
+    const load = async () => {
+      setIsLoadingProjects(true)
+      try {
+        const res = await fetch('/api/projects?limit=100', { cache: 'no-store' })
+        const json = await res.json()
+        if (mounted) setProjectsData(json)
+      } catch {
+        if (mounted) setProjectsData({ docs: [] })
+      } finally {
+        if (mounted) setIsLoadingProjects(false)
+      }
+    }
+    load()
+    return () => {
+      mounted = false
+    }
+  }, [open])
 
   // Load clients list for admin selection
-  const { data: clientsData, isLoading: isLoadingClients } = payloadHook.find<'payload-users', any>(
-    {
-      collection: 'payload-users',
-      where: {
-        role: {
-          equals: 'client',
-        },
-      },
-      limit: 100,
-      page: 1,
-      depth: 0,
-    },
-  )
+  const [clientsData, setClientsData] = useState<any>(null)
+  const [isLoadingClients, setIsLoadingClients] = useState<boolean>(false)
+  useEffect(() => {
+    if (!open) return
+    let mounted = true
+    const load = async () => {
+      setIsLoadingClients(true)
+      try {
+        const res = await fetch('/api/users?role=client&limit=100', { cache: 'no-store' })
+        const json = await res.json()
+        if (mounted) setClientsData(json)
+      } catch {
+        if (mounted) setClientsData({ users: [] })
+      } finally {
+        if (mounted) setIsLoadingClients(false)
+      }
+    }
+    load()
+    return () => {
+      mounted = false
+    }
+  }, [open])
 
   const projects = useMemo(() => {
     const docs = (projectsData as any)?.docs
@@ -156,41 +177,24 @@ export default function TicketCreateDrawer({
     return docs.map((d: any) => ({ id: d.id, label: d.name || d.email || d.id }))
   }, [clientsData])
 
-  const createMutation = payloadHook.create<'payload-tickets', PayloadTicketsSelect<true>>(
-    'payload-tickets',
-    {
-      onSuccess: (data: any) => {
-        const ticketNumber = data?.doc?.ticketNumber || data?.ticketNumber
-        const createdId = data?.doc?.id || data?.id
-        toast({
-          variant: 'success',
-          title: ticketNumber ? `Ticket ${ticketNumber} created` : 'Ticket created',
-        })
-        setOpen(false)
-        form.reset()
-        if (onCreated && createdId) onCreated(createdId)
-        if (onAfterSubmit && createdId) onAfterSubmit(createdId)
-      },
-      onError: (error) => {
-        toast({ variant: 'destructive', title: error.message || 'Failed to create ticket' })
-      },
-    },
-  )
-  const updateMutation = payloadHook.updateByID<'payload-tickets', PayloadTicketsSelect<true>>(
-    'payload-tickets',
-    {
-      onSuccess: (data) => {
-        const updatedId = (data as any)?.doc?.id || (data as any)?.id
-        toast({ variant: 'success', title: 'Ticket updated' })
-        setOpen(false)
-        form.reset()
-        if (onAfterSubmit && updatedId) onAfterSubmit(updatedId)
-      },
-      onError: (error) => {
-        toast({ variant: 'destructive', title: error.message || 'Failed to update ticket' })
-      },
-    },
-  )
+  async function createTicket(payloadData: any) {
+    const res = await fetch('/api/tickets', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payloadData.data),
+    })
+    if (!res.ok) throw new Error('Failed to create ticket')
+    return await res.json()
+  }
+  async function updateTicket(id: string, data: any) {
+    const res = await fetch(`/api/tickets?id=${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    })
+    if (!res.ok) throw new Error('Failed to update ticket')
+    return await res.json()
+  }
 
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
@@ -226,34 +230,43 @@ export default function TicketCreateDrawer({
         }
       }
       if (mode === 'edit' && ticketId) {
-        await updateMutation.mutateAsync({
-          id: ticketId,
-          data: {
-            title: values.title,
-            description: sanitizePlainText(values.description),
-            priority: values.priority as TicketPriority,
-            status: 'to_estimate',
-            project: values.project,
-            attachments: (values.attachments || []).map((a) => a.id),
-          },
+        const updated = await updateTicket(ticketId, {
+          title: values.title,
+          description: sanitizePlainText(values.description),
+          priority: values.priority as TicketPriority,
+          status: 'to_estimate',
+          project: values.project,
+          attachments: (values.attachments || []).map((a) => a.id),
         })
+        const updatedId = updated?.ticket?.id || updated?.id
+        toast({ variant: 'success', title: 'Ticket updated' })
+        setOpen(false)
+        form.reset()
+        if (onAfterSubmit && updatedId) onAfterSubmit(updatedId)
       } else {
         const payloadData: any = {
-          collection: 'payload-tickets',
-          data: {
-            title: values.title,
-            description: sanitizePlainText(values.description),
-            priority: values.priority as TicketPriority,
-            status: 'to_estimate',
-            project: values.project,
-            attachments: (values.attachments || []).map((a) => a.id),
-            estimatedHours: 0,
-            ...(currentUser?.role === 'client'
-              ? { createdBy: currentUser.id, client: currentUser.id }
-              : { createdBy: values.clientUserId, client: values.clientUserId }),
-          },
+          title: values.title,
+          description: sanitizePlainText(values.description),
+          priority: values.priority as TicketPriority,
+          status: 'to_estimate',
+          project: values.project,
+          attachments: (values.attachments || []).map((a) => a.id),
+          estimatedHours: 0,
+          ...(currentUser?.role === 'client'
+            ? { createdBy: currentUser.id, client: currentUser.id }
+            : { createdBy: values.clientUserId, client: values.clientUserId }),
         }
-        await createMutation.mutateAsync(payloadData)
+        const created = await createTicket({ data: payloadData })
+        const ticketNumber = created?.ticket?.ticketNumber || created?.ticketNumber
+        const createdId = created?.ticket?.id || created?.id
+        toast({
+          variant: 'success',
+          title: ticketNumber ? `Ticket ${ticketNumber} created` : 'Ticket created',
+        })
+        setOpen(false)
+        form.reset()
+        if (onCreated && createdId) onCreated(createdId)
+        if (onAfterSubmit && createdId) onAfterSubmit(createdId)
       }
     } finally {
       setIsSubmitting(false)

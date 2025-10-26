@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import payload from '@/payload'
+import { getPayload } from 'payload'
+import config from '@payload-config'
 
 export async function GET(request: NextRequest) {
   try {
+    const payload = (await getPayload({ config })) as any
     const searchParams = request.nextUrl.searchParams
     const role = searchParams.get('role')
 

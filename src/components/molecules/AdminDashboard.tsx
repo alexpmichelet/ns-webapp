@@ -1,51 +1,55 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/atoms/card'
 import { Button } from '@/components/atoms/button'
 import Link from 'next/link'
 import { TicketKanbanBoard } from '@/components/molecules/TicketKanbanBoard'
-import { payloadHook } from '@/lib/data/payload'
 
 export default function AdminDashboard() {
-  const { data: toEstimateCount } = payloadHook.count(
-    {
-      collection: 'payload-tickets',
-      where: { status: { equals: 'to_estimate' } },
-    } as any,
-    {
-      refetchInterval: 60_000,
-    },
-  )
-
-  const { data: needsClientReviewCount } = payloadHook.count(
-    {
-      collection: 'payload-tickets',
-      where: { status: { equals: 'needs_client_review' } },
-    },
-    {
-      refetchInterval: 60_000,
-    },
-  )
-
-  const { data: activeTicketsCount } = payloadHook.count(
-    {
-      collection: 'payload-tickets',
-      where: { status: { not_equals: 'paid_closed' } },
-    } as any,
-    { refetchInterval: 60_000 },
-  )
+  const [counts, setCounts] = useState({ toEstimate: 0, needsReview: 0, active: 0 })
+  useEffect(() => {
+    let mounted = true
+    const load = async () => {
+      try {
+        const res = await fetch('/api/tickets?status=active&limit=1000', { cache: 'no-store' })
+        const json = await res.json()
+        const docs = Array.isArray(json.tickets) ? json.tickets : []
+        if (mounted) {
+          setCounts({
+            toEstimate: docs.filter((d: any) => d.status === 'to_estimate').length,
+            needsReview: docs.filter((d: any) => d.status === 'needs_client_review').length,
+            active: docs.filter((d: any) => d.status !== 'paid_closed').length,
+          })
+        }
+      } catch {}
+    }
+    load()
+    const id = setInterval(load, 60_000)
+    return () => {
+      mounted = false
+      clearInterval(id)
+    }
+  }, [])
 
   // Uninvoiced hours (sum of hours where isBillable && !isInvoiced)
-  const { data: uninvoicedLogs } = payloadHook.find(
-    {
-      collection: 'payload-time-logs',
-      where: { isBillable: { equals: true }, isInvoiced: { equals: false } },
-      limit: 1000,
-      sort: '-date',
-    } as any,
-    { refetchInterval: 60_000 },
-  )
+  const [uninvoicedLogs, setUninvoicedLogs] = useState<any[]>([])
+  useEffect(() => {
+    let mounted = true
+    const load = async () => {
+      try {
+        const res = await fetch('/api/time-logs?limit=1000', { cache: 'no-store' })
+        const json = await res.json()
+        if (mounted) setUninvoicedLogs(Array.isArray(json.timeLogs) ? json.timeLogs : [])
+      } catch {}
+    }
+    load()
+    const id = setInterval(load, 60_000)
+    return () => {
+      mounted = false
+      clearInterval(id)
+    }
+  }, [])
 
   // Monthly revenue (sum of totalAmount for this month where isBillable && isInvoiced)
   const startOfMonth = new Date()
@@ -55,33 +59,39 @@ export default function AdminDashboard() {
   endOfMonth.setMonth(endOfMonth.getMonth() + 1)
   endOfMonth.setMilliseconds(-1)
 
-  const { data: monthlyRevenueLogs } = payloadHook.find(
-    {
-      collection: 'payload-time-logs',
-      where: {
-        isBillable: { equals: true },
-        isInvoiced: { equals: true },
-        date: {
-          greater_than_equal: startOfMonth.toISOString(),
-          less_than_equal: endOfMonth.toISOString(),
-        },
-      },
-      limit: 1000,
-      sort: '-date',
-    } as any,
-    { refetchInterval: 60_000 },
-  )
+  const [monthlyRevenueLogs, setMonthlyRevenueLogs] = useState<any[]>([])
+  useEffect(() => {
+    let mounted = true
+    const load = async () => {
+      try {
+        const res = await fetch('/api/time-logs?limit=1000', { cache: 'no-store' })
+        const json = await res.json()
+        if (!Array.isArray(json.timeLogs)) return
+        const filtered = json.timeLogs.filter(
+          (log: any) =>
+            log.isBillable &&
+            log.isInvoiced &&
+            log.date >= startOfMonth.toISOString() &&
+            log.date <= endOfMonth.toISOString(),
+        )
+        if (mounted) setMonthlyRevenueLogs(filtered)
+      } catch {}
+    }
+    load()
+    const id = setInterval(load, 60_000)
+    return () => {
+      mounted = false
+      clearInterval(id)
+    }
+  }, [])
 
-  const activeTickets = activeTicketsCount?.totalDocs ?? 0
-  const pendingApproval = needsClientReviewCount?.totalDocs ?? 0
-  const uninvoicedHours = Array.isArray(uninvoicedLogs?.docs)
-    ? uninvoicedLogs?.docs.reduce((sum: number, log: any) => sum + (Number(log.hours) || 0), 0)
+  const activeTickets = counts.active
+  const pendingApproval = counts.needsReview
+  const uninvoicedHours = Array.isArray(uninvoicedLogs)
+    ? uninvoicedLogs.reduce((sum: number, log: any) => sum + (Number(log.hours) || 0), 0)
     : 0
-  const monthlyRevenue = Array.isArray((monthlyRevenueLogs as any)?.docs)
-    ? (monthlyRevenueLogs as any).docs.reduce(
-        (sum: number, log: any) => sum + (Number(log.totalAmount) || 0),
-        0,
-      )
+  const monthlyRevenue = Array.isArray(monthlyRevenueLogs)
+    ? monthlyRevenueLogs.reduce((sum: number, log: any) => sum + (Number(log.totalAmount) || 0), 0)
     : 0
 
   return (
@@ -127,7 +137,7 @@ export default function AdminDashboard() {
             <CardTitle className="text-sm font-medium">Estimates Needed</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{(toEstimateCount as any)?.totalDocs ?? 0}</div>
+            <div className="text-2xl font-bold">{counts.toEstimate}</div>
             <p className="text-xs text-muted-foreground">Awaiting agency estimate</p>
             <div className="mt-3">
               <Link href="/tickets/estimation-queue">

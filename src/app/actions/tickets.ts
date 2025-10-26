@@ -1,7 +1,8 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import payload from '@/payload'
+import { getPayload } from 'payload'
+import config from '@payload-config'
 import type { TicketStatus } from '@/collections/Tickets'
 import { revalidateTag } from 'next/cache'
 
@@ -14,6 +15,7 @@ export async function createTicket(data: {
   attachments?: string[]
 }) {
   try {
+    const payload = (await getPayload({ config })) as any
     const ticket = await payload.create({
       collection: 'payload-tickets',
       data: {
@@ -32,6 +34,7 @@ export async function createTicket(data: {
 
 export async function updateTicketStatus(ticketId: string, status: TicketStatus) {
   try {
+    const payload = (await getPayload({ config })) as any
     const ticket = await payload.findByID({
       collection: 'payload-tickets',
       id: ticketId,
@@ -46,6 +49,7 @@ export async function updateTicketStatus(ticketId: string, status: TicketStatus)
       ready_to_test: ['done', 'development_in_progress'],
       done: ['paid_closed'],
       paid_closed: [],
+      cancelled: [],
     }
 
     const currentStatus = ticket.status as TicketStatus
@@ -74,6 +78,7 @@ export async function updateTicketStatus(ticketId: string, status: TicketStatus)
 
 export async function approveTicket(ticketId: string) {
   try {
+    const payload = (await getPayload({ config })) as any
     const ticket = await payload.update({
       collection: 'payload-tickets',
       id: ticketId,
@@ -94,6 +99,7 @@ export async function approveTicket(ticketId: string) {
 
 export async function requestRevision(ticketId: string, reason: string) {
   try {
+    const payload = (await getPayload({ config })) as any
     const ticket = await payload.findByID({
       collection: 'payload-tickets',
       id: ticketId,
@@ -134,6 +140,7 @@ export async function submitEstimate(params: {
   internalNotes?: string
 }) {
   try {
+    const payload = (await getPayload({ config })) as any
     const existing = await payload.findByID({
       collection: 'payload-tickets',
       id: params.ticketId,
@@ -161,6 +168,7 @@ export async function submitEstimate(params: {
 
 export async function getTicketsByClient(clientId: string) {
   try {
+    const payload = (await getPayload({ config })) as any
     const tickets = await payload.find({
       collection: 'tickets',
       where: {
@@ -181,6 +189,7 @@ export async function getTicketsByClient(clientId: string) {
 
 export async function getTicketById(ticketId: string) {
   try {
+    const payload = (await getPayload({ config })) as any
     const ticket = await payload.findByID({
       collection: 'tickets',
       id: ticketId,

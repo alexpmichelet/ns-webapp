@@ -2,17 +2,9 @@
 // ========================== Payload API Data Operations ========================= //
 // ================================================================================ //
 
-// Provide empty stubs if custom implementations are missing
-// Narrowed unknown types for optional custom modules
-// Use unknown and type assertions at usage sites rather than any
-let customPayloadActions: unknown = {}
-let customPayloadHooks: unknown = {}
-try {
-  customPayloadActions = await import('./custom/server-actions')
-} catch {}
-try {
-  customPayloadHooks = await import('./custom/hooks')
-} catch {}
+// Provide empty stubs for optional custom modules (avoid top-level await)
+const customPayloadActions: unknown = {}
+const customPayloadHooks: unknown = {}
 import {
   payloadAuthAction,
   payloadCountAction,

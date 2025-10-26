@@ -1,7 +1,8 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import payload from '@/payload'
+import { getPayload } from 'payload'
+import config from '@payload-config'
 
 export async function createTimeLog(data: {
   ticket: string
@@ -14,8 +15,9 @@ export async function createTimeLog(data: {
   tags?: { tag: string }[]
 }) {
   try {
+    const payload = (await getPayload({ config })) as any
     const timeLog = await payload.create({
-      collection: 'time-logs',
+      collection: 'payload-time-logs',
       data: {
         ...data,
         isBillable: data.isBillable !== false, // Default to true
@@ -62,9 +64,10 @@ export async function updateTimeLog(
   },
 ) {
   try {
+    const payload = (await getPayload({ config })) as any
     // Check if time log is already invoiced
     const existingLog = await payload.findByID({
-      collection: 'time-logs',
+      collection: 'payload-time-logs',
       id: timeLogId,
     })
 
@@ -76,7 +79,7 @@ export async function updateTimeLog(
     }
 
     const timeLog = await payload.update({
-      collection: 'time-logs',
+      collection: 'payload-time-logs',
       id: timeLogId,
       data,
     })
@@ -92,8 +95,9 @@ export async function updateTimeLog(
 
 export async function deleteTimeLog(timeLogId: string) {
   try {
+    const payload = (await getPayload({ config })) as any
     await payload.delete({
-      collection: 'time-logs',
+      collection: 'payload-time-logs',
       id: timeLogId,
     })
 
@@ -107,8 +111,9 @@ export async function deleteTimeLog(timeLogId: string) {
 
 export async function getTimeLogsByTicket(ticketId: string) {
   try {
+    const payload = (await getPayload({ config })) as any
     const timeLogs = await payload.find({
-      collection: 'time-logs',
+      collection: 'payload-time-logs',
       where: {
         ticket: {
           equals: ticketId,
@@ -127,6 +132,7 @@ export async function getTimeLogsByTicket(ticketId: string) {
 
 export async function getUninvoicedTimeLogs(clientId?: string) {
   try {
+    const payload = (await getPayload({ config })) as any
     type EqualsFilter<T> = { equals: T }
     type TimeLogsWhere = {
       isInvoiced?: EqualsFilter<boolean>
@@ -149,7 +155,7 @@ export async function getUninvoicedTimeLogs(clientId?: string) {
     }
 
     const timeLogs = await payload.find({
-      collection: 'time-logs',
+      collection: 'payload-time-logs',
       where,
       sort: '-date',
       limit: 1000,
@@ -164,8 +170,9 @@ export async function getUninvoicedTimeLogs(clientId?: string) {
 
 export async function getTotalHoursByTicket(ticketId: string) {
   try {
+    const payload = (await getPayload({ config })) as any
     const timeLogs = await payload.find({
-      collection: 'time-logs',
+      collection: 'payload-time-logs',
       where: {
         ticket: {
           equals: ticketId,
