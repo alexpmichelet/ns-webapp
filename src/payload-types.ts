@@ -327,7 +327,7 @@ export interface AdminInvitation {
  */
 export interface PayloadMedia {
   id: string;
-  alt: string;
+  alt?: string | null;
   updatedAt: string;
   createdAt: string;
   url?: string | null;
@@ -361,21 +361,7 @@ export interface PayloadTicket {
   id: string;
   ticketNumber: string;
   title: string;
-  description: {
-    root: {
-      type: string;
-      children: {
-        type: any;
-        version: number;
-        [k: string]: unknown;
-      }[];
-      direction: ('ltr' | 'rtl') | null;
-      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
-      indent: number;
-      version: number;
-    };
-    [k: string]: unknown;
-  };
+  description: string;
   project: string | PayloadProject;
   client: string | PayloadUser;
   status:

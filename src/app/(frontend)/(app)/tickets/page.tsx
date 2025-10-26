@@ -5,6 +5,7 @@ import { Button } from '@/components/atoms/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/atoms/card'
 import { Badge } from '@/components/atoms/badge'
 import { payloadHook } from '@/lib/data/payload'
+import TicketCreateDrawer from '@/components/molecules/tickets/TicketCreateDrawer'
 
 const statusColors: Record<string, string> = {
   pending_review: 'bg-blue-500',
@@ -53,9 +54,7 @@ export default function TicketsPage() {
           <h1 className="text-3xl font-bold">Your Tickets</h1>
           <p className="text-muted-foreground">View and manage your support tickets</p>
         </div>
-        <Link href="/tickets/new">
-          <Button>Submit New Ticket</Button>
-        </Link>
+        <TicketCreateDrawer triggerLabel="Submit New Ticket" />
       </div>
 
       {isLoading ? (
@@ -70,9 +69,7 @@ export default function TicketsPage() {
             <p className="text-muted-foreground mb-4">
               You haven&apos;t submitted any tickets yet.
             </p>
-            <Link href="/tickets/new">
-              <Button>Submit Your First Ticket</Button>
-            </Link>
+            <TicketCreateDrawer triggerLabel="Submit Your First Ticket" />
           </CardContent>
         </Card>
       ) : (

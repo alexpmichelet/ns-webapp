@@ -32,6 +32,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/atoms/dropdown-menu'
 import { useEffect, useMemo, useState } from 'react'
+import { useSelectedProjectStore } from '@/hooks/use-selected-project'
 
 // App navigation configuration
 const nav = [
@@ -56,6 +57,7 @@ export function AppSidebar({
   const { toast } = useToast()
   const [projects, setProjects] = useState<Array<ProjectItem>>([])
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null)
+  const setSelectedProject = useSelectedProjectStore((s) => s.setSelectedProject)
 
   const isLoadingProjects = false
 
@@ -96,6 +98,14 @@ export function AppSidebar({
     () => projects.find((p) => p.id === selectedProjectId) || null,
     [projects, selectedProjectId],
   )
+
+  useEffect(() => {
+    if (selectedProject) {
+      setSelectedProject({ id: selectedProject.id, name: selectedProject.name })
+    } else {
+      setSelectedProject(null)
+    }
+  }, [selectedProject, setSelectedProject])
 
   return (
     <Sidebar {...sidebarProps}>
@@ -138,6 +148,7 @@ export function AppSidebar({
                       onSelect={(e) => {
                         e.preventDefault()
                         setSelectedProjectId(p.id)
+                        setSelectedProject({ id: p.id, name: p.name })
                       }}
                     >
                       {p.name}

@@ -5,6 +5,7 @@ import { authClient } from '@/lib/auth/client'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/atoms/card'
 import { Button } from '@/components/atoms/button'
 import Link from 'next/link'
+import TicketCreateDrawer from '@/components/molecules/tickets/TicketCreateDrawer'
 
 export default function ClientDashboard() {
   const session = authClient.useSession()
@@ -107,9 +108,7 @@ export default function ClientDashboard() {
           <CardDescription>Common tasks and shortcuts</CardDescription>
         </CardHeader>
         <CardContent className="flex gap-4">
-          <Link href="/tickets/new">
-            <Button>Submit New Ticket</Button>
-          </Link>
+          <TicketCreateDrawer triggerLabel="Submit New Ticket" />
           <Link href="/tickets">
             <Button variant="outline">View All Tickets</Button>
           </Link>

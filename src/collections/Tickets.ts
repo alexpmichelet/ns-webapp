@@ -65,7 +65,7 @@ export const Tickets: CollectionConfig = {
     },
     {
       name: 'description',
-      type: 'richText',
+      type: 'textarea',
       required: true,
     },
     {
