@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/atoms/car
 import { Badge } from '@/components/atoms/badge'
 import { payloadHook } from '@/lib/data/payload'
 import TicketCreateDrawer from '@/components/molecules/tickets/TicketCreateDrawer'
+import { useSelectedProjectStore } from '@/hooks/use-selected-project'
 
 const statusColors: Record<string, string> = {
   pending_review: 'bg-blue-500',
@@ -27,22 +28,30 @@ const priorityColors: Record<string, string> = {
 
 export default function TicketsPage() {
   const session = authClient.useSession()
-  const user = session?.data?.user as { id: string } | undefined
+  const user = session?.data?.user as { id: string; role?: string } | undefined
+  const selectedProject = useSelectedProjectStore((s) => s.selectedProject)
+  const isAdmin = (user as any)?.role === 'admin'
 
   const { data: ticketsResult, isLoading } = payloadHook.find(
     {
       collection: 'payload-tickets',
-      where: user?.id
+      where: isAdmin
         ? {
-            client: {
-              equals: user.id,
+            project: {
+              equals: selectedProject?.id,
             },
           }
-        : {},
+        : user?.id
+          ? {
+              client: {
+                equals: user.id,
+              },
+            }
+          : {},
       limit: 100,
       sort: '-createdAt',
     } as any,
-    { enabled: !!user?.id },
+    { enabled: isAdmin ? !!(user?.id && selectedProject?.id) : !!user?.id },
   )
 
   const tickets = Array.isArray((ticketsResult as any)?.docs) ? (ticketsResult as any).docs : []
