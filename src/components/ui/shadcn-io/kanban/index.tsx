@@ -80,7 +80,8 @@ export const KanbanBoard = ({ id, children, className }: KanbanBoardProps) => {
   return (
     <div
       className={cn(
-        'flex size-full min-h-40 flex-col divide-y overflow-hidden rounded-md border bg-secondary text-xs shadow-sm ring-2 transition-all',
+        // Large, non-clipping columns
+        'kanban-column w-[420px] flex-shrink-0 min-h-[560px] flex flex-col divide-y overflow-visible rounded-lg border bg-secondary text-xs shadow-sm ring-2 transition-all px-4 pb-4 pt-3',
         isOver ? 'ring-primary' : 'ring-transparent',
         className,
       )}
@@ -114,10 +115,16 @@ export const KanbanCard = <T extends KanbanItemProps = KanbanItemProps>({
 
   return (
     <>
-      <div style={style} {...listeners} {...attributes} ref={setNodeRef}>
+      <div
+        style={style}
+        {...listeners}
+        {...attributes}
+        ref={setNodeRef}
+        className="will-change-transform"
+      >
         <Card
           className={cn(
-            'cursor-grab gap-4 rounded-md p-3 shadow-sm',
+            'cursor-grab gap-4 rounded-md overflow-visible bg-transparent border-0 shadow-none p-0 py-0',
             isDragging && 'pointer-events-none cursor-grabbing opacity-30',
             className,
           )}
@@ -129,7 +136,7 @@ export const KanbanCard = <T extends KanbanItemProps = KanbanItemProps>({
         <t.In>
           <Card
             className={cn(
-              'cursor-grab gap-4 rounded-md p-3 shadow-sm ring-2 ring-primary',
+              'cursor-grab gap-4 rounded-md bg-transparent border-0 shadow-none p-0 py-0 ring-2 ring-primary',
               isDragging && 'cursor-grabbing',
               className,
             )}
@@ -160,9 +167,12 @@ export const KanbanCards = <T extends KanbanItemProps = KanbanItemProps>({
   const items = filteredData.map((item) => item.id)
 
   return (
-    <ScrollArea className="overflow-hidden">
+    <ScrollArea className="overflow-visible">
       <SortableContext items={items}>
-        <div className={cn('flex flex-grow flex-col gap-2 p-2', className)} {...props}>
+        <div
+          className={cn('flex flex-grow flex-col gap-4 p-2 min-h-[500px]', className)}
+          {...props}
+        >
           {filteredData.map((item) => (
             <Fragment key={item.id}>{children(item)}</Fragment>
           ))}
@@ -191,6 +201,8 @@ export type KanbanProviderProps<
   onDragStart?: (event: DragStartEvent) => void
   onDragEnd?: (event: DragEndEvent) => void
   onDragOver?: (event: DragOverEvent) => void
+  /** Optional className to fully control the inner layout container. If provided, replaces the default grid classes. */
+  containerClassName?: string
 }
 
 export const KanbanProvider = <
@@ -205,15 +217,17 @@ export const KanbanProvider = <
   columns,
   data,
   onDataChange,
+  containerClassName,
   ...props
 }: KanbanProviderProps<T, C>) => {
   const [activeCardId, setActiveCardId] = useState<string | null>(null)
 
-  const sensors = useSensors(
+  const defaultSensors = useSensors(
     useSensor(MouseSensor),
     useSensor(TouchSensor),
     useSensor(KeyboardSensor),
   )
+  const sensorsToUse = (props as DndContextProps).sensors ?? defaultSensors
 
   const handleDragStart = (event: DragStartEvent) => {
     const card = data.find((item) => item.id === event.active.id)
@@ -309,10 +323,15 @@ export const KanbanProvider = <
         onDragEnd={handleDragEnd}
         onDragOver={handleDragOver}
         onDragStart={handleDragStart}
-        sensors={sensors}
+        sensors={sensorsToUse}
         {...props}
       >
-        <div className={cn('grid size-full auto-cols-fr grid-flow-col gap-4', className)}>
+        <div
+          className={cn(
+            containerClassName ?? 'grid size-full auto-cols-fr grid-flow-col gap-4',
+            className,
+          )}
+        >
           {columns.map((column) => (
             <Fragment key={column.id}>{children(column)}</Fragment>
           ))}

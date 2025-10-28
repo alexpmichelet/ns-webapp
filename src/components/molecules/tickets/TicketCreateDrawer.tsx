@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Button } from '@/components/atoms/button'
 import {
   Dialog,
@@ -40,6 +40,7 @@ type Props = {
   triggerVariant?: 'default' | 'outline' | 'ghost'
   fullWidth?: boolean
   triggerLabel?: string
+  icon?: React.ReactNode
   mode?: 'create' | 'edit'
   ticketId?: string
   initialValues?: Partial<TicketFormValues>
@@ -65,6 +66,7 @@ export default function TicketCreateDrawer({
   triggerVariant = 'default',
   fullWidth,
   triggerLabel = 'Create New Ticket',
+  icon,
   mode = 'create',
   ticketId,
   initialValues,
@@ -241,6 +243,7 @@ export default function TicketCreateDrawer({
       {hideTrigger ? null : (
         <DialogTrigger asChild>
           <Button className={fullWidth ? 'w-full' : undefined} variant={triggerVariant}>
+            {icon}
             {triggerLabel}
           </Button>
         </DialogTrigger>

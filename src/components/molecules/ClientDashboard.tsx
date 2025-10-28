@@ -6,7 +6,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/atoms/button'
 import Link from 'next/link'
 import TicketCreateDrawer from '@/components/molecules/tickets/TicketCreateDrawer'
+import { TicketKanbanBoard } from '@/components/molecules/TicketKanbanBoard'
 import { payloadHook } from '@/lib/data/payload'
+import { Plus, Eye, CheckCircle, TestTube } from 'lucide-react'
 
 export default function ClientDashboard() {
   const session = authClient.useSession()
@@ -42,68 +44,63 @@ export default function ClientDashboard() {
 
   return (
     <div className="container mx-auto py-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold">Welcome back, {user.name}</h1>
-        <p className="text-muted-foreground">
-          Here&apos;s an overview of your projects and invoices
-        </p>
-      </div>
+      <div className="mb-8 flex items-center justify-start gap-10 flex-wrap">
+        <div>
+          <h1 className="text-3xl font-bold">Welcome back, {user.name}</h1>
+          <p className="text-muted-foreground">
+            Here&apos;s an overview of your projects and tickets
+          </p>
+        </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-8">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Tickets</CardTitle>
-          </CardHeader>
-          <CardContent>
+        <div className="flex gap-3">
+          {/* Active Tickets KPI */}
+          <div className="group relative flex flex-col items-center justify-center px-6 py-3 rounded-lg border bg-card transition-all hover:shadow-md hover:scale-105">
+            <div className="text-sm font-medium text-muted-foreground mb-1">Active Tickets</div>
             <div className="text-2xl font-bold">{activeTickets}</div>
-            <p className="text-xs text-muted-foreground">Currently in progress</p>
-          </CardContent>
-        </Card>
+          </div>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Completed</CardTitle>
-          </CardHeader>
-          <CardContent>
+          {/* Completed Tickets KPI */}
+          <div className="group relative flex flex-col items-center justify-center px-6 py-3 rounded-lg border bg-card transition-all hover:shadow-md hover:scale-105">
+            <div className="text-sm font-medium text-muted-foreground mb-1">Completed</div>
             <div className="text-2xl font-bold">{completedTickets}</div>
-            <p className="text-xs text-muted-foreground">Tickets completed and paid</p>
-          </CardContent>
-        </Card>
+          </div>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pending Reviews</CardTitle>
-          </CardHeader>
-          <CardContent>
+          {/* Pending Reviews KPI */}
+          <div className="group relative flex flex-col items-center justify-center px-6 py-3 rounded-lg border bg-card transition-all hover:shadow-md hover:scale-105">
+            <div className="text-sm font-medium text-muted-foreground mb-1">Pending Reviews</div>
             <div className="text-2xl font-bold">{pendingReviews}</div>
-            <p className="text-xs text-muted-foreground">Estimates awaiting your approval</p>
-          </CardContent>
-        </Card>
-
-        {/* Invoices widgets removed */}
+          </div>
+        </div>
       </div>
 
-      <Card className="mb-8">
-        <CardHeader>
-          <CardTitle>Quick Actions</CardTitle>
-          <CardDescription>Common tasks and shortcuts</CardDescription>
-        </CardHeader>
-        <CardContent className="flex gap-4">
-          <TicketCreateDrawer triggerLabel="Submit New Ticket" />
-          <Link href="/tickets">
-            <Button variant="outline">View All Tickets</Button>
-          </Link>
+      <div className="mb-8">
+        <h2 className="text-xl font-semibold mb-4">Quick Actions</h2>
+        <div className="flex gap-4 flex-wrap">
+          <TicketCreateDrawer triggerLabel="Submit New Ticket" icon={<Plus />} />
+
           <Link href="/tickets/pending-reviews">
-            <Button>Pending Reviews</Button>
+            <Button>
+              <CheckCircle className="w-4 h-4" />
+              Pending Reviews
+            </Button>
           </Link>
           <Link href="/tickets/testing">
-            <Button>Testing Dashboard</Button>
+            <Button>
+              <TestTube className="w-4 h-4" />
+              Testing Dashboard
+            </Button>
           </Link>
-          {/* Invoice links removed */}
+        </div>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Ticket Board</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <TicketKanbanBoard />
         </CardContent>
       </Card>
-
-      {/* Recent invoices card removed */}
     </div>
   )
 }

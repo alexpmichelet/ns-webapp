@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { authClient } from '@/lib/auth/client'
 import { payloadHook } from '@/lib/data/payload'
 import { Button } from '@/components/atoms/button'
@@ -27,6 +28,7 @@ import {
 import { cn } from '@/lib/utils'
 import dynamic from 'next/dynamic'
 import { PayloadProject, PayloadTicket } from '@/payload-types'
+import { ArrowLeft } from 'lucide-react'
 import type { Session } from '@/lib/auth/client'
 import EstimationFormModal from '@/components/molecules/tickets/EstimationFormModal'
 // Inline SLA countdown to avoid cross-module type issues
@@ -116,6 +118,7 @@ function addBusinessDays(start: Date, businessDays: number): Date {
 }
 
 export default function EstimationQueuePage() {
+  const router = useRouter()
   const session = authClient.useSession()
   const user = (session?.data as Session | undefined)?.user
 
@@ -211,6 +214,10 @@ export default function EstimationQueuePage() {
     <div className="container mx-auto py-8">
       <div className="flex items-start justify-between gap-4 mb-6">
         <div>
+          <Button variant="outline" size="sm" onClick={() => router.back()} className="mb-4">
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Go Back
+          </Button>
           <h1 className="text-3xl font-bold">Estimation Queue</h1>
           <p className="text-muted-foreground">Tickets awaiting agency estimates</p>
         </div>

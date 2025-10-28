@@ -1,8 +1,7 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/atoms/card'
-import { Button } from '@/components/atoms/button'
 import Link from 'next/link'
 import { TicketKanbanBoard } from '@/components/molecules/TicketKanbanBoard'
 import { payloadHook } from '@/lib/data/payload'
@@ -77,75 +76,50 @@ export default function AdminDashboard() {
 
   return (
     <div className="container mx-auto py-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold">Admin Dashboard</h1>
-        <p className="text-muted-foreground">Manage tickets, time logs, and invoices</p>
-      </div>
+      <div className="mb-8 flex items-center justify-start gap-10 flex-wrap">
+        <div>
+          <h1 className="text-3xl font-bold">Admin Dashboard</h1>
+          <p className="text-muted-foreground">Manage tickets, time logs, and invoices</p>
+        </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5 mb-8">
-        {/* <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Tickets</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{activeTickets}</div>
-            <p className="text-xs text-muted-foreground">In progress</p>
-          </CardContent>
-        </Card> */}
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pending Approval</CardTitle>
-          </CardHeader>
-          <CardContent>
+        <div className="flex gap-3">
+          {/* Pending Approval KPI */}
+          <div className="group relative flex flex-col items-center justify-center px-6 py-3 rounded-lg border bg-card transition-all hover:shadow-md hover:scale-105 ">
+            <div className="text-sm font-medium text-muted-foreground mb-1">Pending Approval</div>
             <div className="text-2xl font-bold">{pendingApproval}</div>
-            <p className="text-xs text-muted-foreground">Awaiting client</p>
-          </CardContent>
-        </Card>
+          </div>
 
-        {/*  <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Ready To Test</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{readyToTest}</div>
-            <p className="text-xs text-muted-foreground">Client testing window</p>
-            <div className="mt-3">
-              <Link href="/tickets/testing">
-                <Button size="sm" variant="outline">
-                  Open Testing Dashboard
-                </Button>
-              </Link>
-            </div>
-          </CardContent>
-        </Card> */}
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Uninvoiced Hours</CardTitle>
-          </CardHeader>
-          <CardContent>
+          {/* Uninvoiced Hours KPI */}
+          <div className="group relative flex flex-col items-center justify-center px-6 py-3 rounded-lg border bg-card transition-all hover:shadow-md hover:scale-105 ">
+            <div className="text-sm font-medium text-muted-foreground mb-1">Uninvoiced Hours</div>
             <div className="text-2xl font-bold">{uninvoicedHours}h</div>
-            <p className="text-xs text-muted-foreground">Ready to invoice</p>
-          </CardContent>
-        </Card>
+          </div>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Estimates Needed</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{counts.toEstimate}</div>
-            <p className="text-xs text-muted-foreground">Awaiting agency estimate</p>
-            <div className="mt-3">
-              <Link href="/tickets/estimation-queue">
-                <Button size="sm" variant="outline">
-                  Open Estimation Queue
-                </Button>
-              </Link>
+          {/* Estimates Needed KPI - Clickable with notification */}
+          <Link href="/tickets/estimation-queue" className="block">
+            <div
+              className={`group relative flex flex-col items-center justify-center px-6 py-3 rounded-lg border transition-all hover:shadow-lg hover:scale-105 cursor-pointer ${
+                counts.toEstimate > 0
+                  ? 'bg-red-50 border-red-200 hover:bg-red-100 hover:border-red-300'
+                  : 'bg-card hover:shadow-md'
+              }`}
+            >
+              {counts.toEstimate > 0 && (
+                <div className="absolute -top-2 -right-2 flex h-6 w-6 items-center justify-center rounded-full bg-red-500 text-xs font-bold text-white animate-pulse">
+                  {counts.toEstimate}
+                </div>
+              )}
+              <div
+                className={`text-sm font-medium mb-1 ${counts.toEstimate > 0 ? 'text-red-700' : 'text-muted-foreground'}`}
+              >
+                Estimates Needed
+              </div>
+              <div className={`text-2xl font-bold ${counts.toEstimate > 0 ? 'text-red-600' : ''}`}>
+                {counts.toEstimate}
+              </div>
             </div>
-          </CardContent>
-        </Card>
+          </Link>
+        </div>
       </div>
 
       <Card>
