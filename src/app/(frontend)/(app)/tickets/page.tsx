@@ -4,6 +4,7 @@ import { authClient } from '@/lib/auth/client'
 import { Button } from '@/components/atoms/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/atoms/card'
 import { Badge } from '@/components/atoms/badge'
+import PriorityBadge from '@/components/atoms/priority-badge'
 import { payloadHook } from '@/lib/data/payload'
 import TicketCreateDrawer from '@/components/molecules/tickets/TicketCreateDrawer'
 import { useSelectedProjectStore } from '@/hooks/use-selected-project'
@@ -17,13 +18,6 @@ const statusColors: Record<string, string> = {
   approved: 'bg-green-500',
   invoiced: 'bg-teal-500',
   paid: 'bg-gray-500',
-}
-
-const priorityColors: Record<string, string> = {
-  low: 'bg-gray-400',
-  medium: 'bg-blue-400',
-  high: 'bg-orange-400',
-  urgent: 'bg-red-600',
 }
 
 export default function TicketsPage() {
@@ -97,12 +91,7 @@ export default function TicketsPage() {
                       <Badge className={`${statusColors[ticket.status]} text-white`}>
                         {ticket.status.replace('_', ' ')}
                       </Badge>
-                      <Badge
-                        variant="outline"
-                        className={`${priorityColors[ticket.priority]} text-white`}
-                      >
-                        {ticket.priority}
-                      </Badge>
+                      <PriorityBadge priority={ticket.priority} />
                     </div>
                   </div>
                   <Link href={`/tickets/${ticket.id}`}>

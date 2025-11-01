@@ -139,6 +139,70 @@ export const Tickets: CollectionConfig = {
       },
     },
     {
+      name: 'designHours',
+      type: 'number',
+      min: 0,
+      defaultValue: 0,
+      admin: {
+        description: 'Hours allocated for design work',
+        position: 'sidebar',
+      },
+    },
+    {
+      name: 'pmScopingHours',
+      type: 'number',
+      min: 0,
+      defaultValue: 0,
+      admin: {
+        description: 'Hours allocated for PM & scoping',
+        position: 'sidebar',
+      },
+    },
+    {
+      name: 'devHours',
+      type: 'number',
+      min: 0,
+      defaultValue: 0,
+      admin: {
+        description: 'Hours allocated for development',
+        position: 'sidebar',
+      },
+    },
+    {
+      name: 'testingHours',
+      type: 'number',
+      min: 0,
+      defaultValue: 0,
+      admin: {
+        description: 'Hours allocated for testing',
+        position: 'sidebar',
+      },
+    },
+    {
+      name: 'deploymentHours',
+      type: 'number',
+      min: 0,
+      defaultValue: 0,
+      admin: {
+        description: 'Hours allocated for deployment',
+        position: 'sidebar',
+      },
+    },
+    {
+      name: 'additionalPrecision',
+      type: 'textarea',
+      admin: {
+        description: 'Additional precision notes visible to client',
+      },
+    },
+    {
+      name: 'internalNotes',
+      type: 'textarea',
+      admin: {
+        description: 'Internal notes (agency-only)',
+      },
+    },
+    {
       name: 'actualHours',
       type: 'number',
       defaultValue: 0,

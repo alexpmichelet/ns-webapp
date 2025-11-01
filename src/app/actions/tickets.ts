@@ -134,8 +134,12 @@ export async function requestRevision(ticketId: string, reason: string) {
 
 export async function submitEstimate(params: {
   ticketId: string
-  estimatedHours: number
-  breakdown: string
+  designHours: number
+  pmScopingHours: number
+  devHours: number
+  testingHours: number
+  deploymentHours: number
+  additionalPrecision?: string
   internalNotes?: string
 }) {
   try {
@@ -145,12 +149,26 @@ export async function submitEstimate(params: {
       id: params.ticketId,
     })
 
+    const totalHours =
+      params.designHours +
+      params.pmScopingHours +
+      params.devHours +
+      params.testingHours +
+      params.deploymentHours
+
     // Update estimate and move status to needs_client_review
     const updated = await payload.update({
       collection: 'payload-tickets',
       id: params.ticketId,
       data: {
-        estimatedHours: params.estimatedHours,
+        estimatedHours: totalHours,
+        designHours: params.designHours,
+        pmScopingHours: params.pmScopingHours,
+        devHours: params.devHours,
+        testingHours: params.testingHours,
+        deploymentHours: params.deploymentHours,
+        additionalPrecision: params.additionalPrecision,
+        internalNotes: params.internalNotes,
         status: 'needs_client_review',
       },
     })

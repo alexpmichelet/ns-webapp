@@ -377,6 +377,34 @@ export interface PayloadTicket {
    */
   estimatedHours: number;
   /**
+   * Hours allocated for design work
+   */
+  designHours?: number | null;
+  /**
+   * Hours allocated for PM & scoping
+   */
+  pmScopingHours?: number | null;
+  /**
+   * Hours allocated for development
+   */
+  devHours?: number | null;
+  /**
+   * Hours allocated for testing
+   */
+  testingHours?: number | null;
+  /**
+   * Hours allocated for deployment
+   */
+  deploymentHours?: number | null;
+  /**
+   * Additional precision notes visible to client
+   */
+  additionalPrecision?: string | null;
+  /**
+   * Internal notes (agency-only)
+   */
+  internalNotes?: string | null;
+  /**
    * Total hours logged (auto-calculated)
    */
   actualHours?: number | null;
@@ -705,6 +733,13 @@ export interface PayloadTicketsSelect<T extends boolean = true> {
   status?: T;
   priority?: T;
   estimatedHours?: T;
+  designHours?: T;
+  pmScopingHours?: T;
+  devHours?: T;
+  testingHours?: T;
+  deploymentHours?: T;
+  additionalPrecision?: T;
+  internalNotes?: T;
   actualHours?: T;
   requiresClientApproval?: T;
   approvalDeadline?: T;

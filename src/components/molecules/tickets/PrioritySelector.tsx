@@ -1,8 +1,6 @@
 'use client'
 
 import { Badge } from '@/components/atoms/badge'
-import { RadioGroup, RadioGroupItem } from '@/components/atoms/radio-group'
-import { Label } from '@/components/atoms/label'
 import type { TicketPriority } from '@/collections/Tickets'
 
 type Props = {
@@ -43,21 +41,39 @@ const optionStyles: Record<
 
 export default function PrioritySelector({ value, onChange }: Props) {
   return (
-    <RadioGroup
-      value={value}
-      onValueChange={(v) => onChange(v as TicketPriority)}
-      className="grid gap-3"
-    >
+    <div className="grid gap-3" role="radiogroup" aria-label="Select priority">
       {(['low', 'medium', 'high', 'absolute'] as TicketPriority[]).map((key) => {
         const s = optionStyles[key]
+        const isSelected = value === key
         return (
-          <div key={key} className={`flex items-start gap-3 rounded-md border p-3`}>
-            <RadioGroupItem value={key} id={`priority-${key}`} className={`mt-1 ${s.dot}`} />
-            <div className="space-y-1">
+          <div
+            key={key}
+            onClick={() => onChange(key)}
+            role="radio"
+            aria-checked={isSelected}
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault()
+                onChange(key)
+              }
+            }}
+            className={`flex items-start gap-3 rounded-md border-2 p-3 cursor-pointer transition-all duration-200 hover:bg-gray-50 hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+              isSelected
+                ? 'border-gray-800 bg-gray-50 shadow-sm'
+                : 'border-gray-200 hover:border-gray-300'
+            }`}
+          >
+            <div
+              className={`mt-1 w-4 h-4 rounded-full border-2 flex items-center justify-center ${
+                isSelected ? 'border-blue-600 bg-blue-600' : s.dot
+              }`}
+            >
+              {isSelected && <div className="w-2 h-2 bg-white rounded-full" />}
+            </div>
+            <div className="space-y-1 flex-1">
               <div className="flex items-center gap-2">
-                <Label htmlFor={`priority-${key}`} className="font-medium">
-                  {s.title}
-                </Label>
+                <span className="font-medium">{s.title}</span>
                 <Badge className={s.badge} variant="secondary">
                   {key.toUpperCase()}
                 </Badge>
@@ -68,7 +84,6 @@ export default function PrioritySelector({ value, onChange }: Props) {
           </div>
         )
       })}
-    </RadioGroup>
+    </div>
   )
 }
-

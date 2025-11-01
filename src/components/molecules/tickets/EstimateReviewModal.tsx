@@ -12,6 +12,7 @@ import {
 } from '@/components/atoms/dialog'
 import { Button } from '@/components/atoms/button'
 import { Badge } from '@/components/atoms/badge'
+import PriorityBadge from '@/components/atoms/priority-badge'
 import { Card, CardContent } from '@/components/atoms/card'
 import {
   AlertDialog,
@@ -146,7 +147,7 @@ export default function EstimateReviewModal({
                       </div>
                       <div className="flex gap-2 mt-3">
                         <Badge variant="outline">{projectName}</Badge>
-                        <Badge>{ticket?.priority}</Badge>
+                        <PriorityBadge priority={ticket?.priority ?? 'medium'} />
                       </div>
                     </div>
                     <div className="shrink-0 text-right">
@@ -192,27 +193,60 @@ export default function EstimateReviewModal({
                   <CardContent className="pt-6">
                     <div className="text-center p-6 bg-blue-50 rounded-lg">
                       <div className="text-4xl font-bold text-blue-600">{estimatedHours}h</div>
-                      <div className="text-sm text-gray-600">Estimated Hours</div>
+                      <div className="text-sm text-gray-600">Total Estimated Hours</div>
                     </div>
                   </CardContent>
                 </Card>
                 <Card className="md:col-span-2">
                   <CardContent className="pt-4">
-                    <div className="space-y-2 text-sm">
-                      <div>
-                        <span className="text-muted-foreground">Estimated by:</span>{' '}
-                        <span>{getUserName(estimatedBy)}</span>
+                    <div className="space-y-3">
+                      <div className="grid grid-cols-2 gap-4 text-sm">
+                        {(ticket?.designHours || 0) > 0 && (
+                          <div>
+                            <span className="text-muted-foreground">Design:</span>{' '}
+                            <span className="font-medium">{ticket?.designHours}h</span>
+                          </div>
+                        )}
+                        {(ticket?.pmScopingHours || 0) > 0 && (
+                          <div>
+                            <span className="text-muted-foreground">PM & Scoping:</span>{' '}
+                            <span className="font-medium">{ticket?.pmScopingHours}h</span>
+                          </div>
+                        )}
+                        {(ticket?.devHours || 0) > 0 && (
+                          <div>
+                            <span className="text-muted-foreground">Development:</span>{' '}
+                            <span className="font-medium">{ticket?.devHours}h</span>
+                          </div>
+                        )}
+                        {(ticket?.testingHours || 0) > 0 && (
+                          <div>
+                            <span className="text-muted-foreground">Testing:</span>{' '}
+                            <span className="font-medium">{ticket?.testingHours}h</span>
+                          </div>
+                        )}
+                        {(ticket?.deploymentHours || 0) > 0 && (
+                          <div>
+                            <span className="text-muted-foreground">Deployment:</span>{' '}
+                            <span className="font-medium">{ticket?.deploymentHours}h</span>
+                          </div>
+                        )}
                       </div>
-                      <div>
-                        <span className="text-muted-foreground">Estimation date:</span>{' '}
-                        <span>
-                          {ticket
-                            ? new Date(ticket.updatedAt || ticket.createdAt).toLocaleString()
-                            : ''}
-                        </span>
-                      </div>
-                      <div className="mt-3 text-muted-foreground">
-                        Estimation breakdown is not captured separately yet.
+                      {ticket?.additionalPrecision && (
+                        <div className="mt-3 p-3 bg-blue-50 rounded-md">
+                          <div className="text-sm font-medium text-blue-900 mb-1">
+                            Additional Details:
+                          </div>
+                          <div className="text-sm text-blue-800 whitespace-pre-wrap">
+                            {ticket.additionalPrecision}
+                          </div>
+                        </div>
+                      )}
+                      <div className="text-xs text-muted-foreground">
+                        Estimated by {getUserName(estimatedBy)} on{' '}
+                        {ticket
+                          ? new Date(ticket.updatedAt || ticket.createdAt).toLocaleString()
+                          : ''}
                       </div>
                     </div>
                   </CardContent>

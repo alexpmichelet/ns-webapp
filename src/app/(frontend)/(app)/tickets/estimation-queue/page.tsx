@@ -7,6 +7,7 @@ import { authClient } from '@/lib/auth/client'
 import { payloadHook } from '@/lib/data/payload'
 import { Button } from '@/components/atoms/button'
 import { Badge } from '@/components/atoms/badge'
+import PriorityBadge from '@/components/atoms/priority-badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/atoms/card'
 import { Input } from '@/components/atoms/input'
 import {
@@ -59,13 +60,6 @@ const priorityOrder: Record<string, number> = {
   high: 1,
   medium: 2,
   low: 3,
-}
-
-const priorityColors: Record<string, string> = {
-  low: 'bg-gray-400',
-  medium: 'bg-blue-400',
-  high: 'bg-orange-400',
-  absolute: 'bg-red-600',
 }
 
 function getProjectName(project: string | PayloadProject | null | undefined): string {
@@ -270,76 +264,76 @@ export default function EstimationQueuePage() {
       <div className="hidden md:block">
         <Card>
           <CardContent className="pt-6">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Ticket #</TableHead>
-                  <TableHead>Project</TableHead>
-                  <TableHead>Title</TableHead>
-                  <TableHead>Priority</TableHead>
-                  <TableHead>Created</TableHead>
-                  <TableHead>Time Remaining</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {isLoading ? (
+            <div className="overflow-x-auto w-full">
+              <Table className="min-w-full">
+                <TableHeader>
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center text-muted-foreground">
-                      Loading...
-                    </TableCell>
+                    <TableHead>Ticket #</TableHead>
+                    <TableHead>Project</TableHead>
+                    <TableHead>Title</TableHead>
+                    <TableHead>Priority</TableHead>
+                    <TableHead>Created</TableHead>
+                    <TableHead>Time Remaining</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
-                ) : pageTickets.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={7} className="text-center text-muted-foreground">
-                      No tickets found
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  pageTickets.map((t) => {
-                    const overdue = isOverdue(t.createdAt)
-                    const projectName = getProjectName(t.project)
-                    return (
-                      <TableRow key={t.id} className={cn(overdue && 'bg-red-50')}>
-                        <TableCell>
-                          <Link href={`/tickets/${t.id}`} className="font-medium hover:underline">
-                            {t.ticketNumber || '—'}
-                          </Link>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline">{projectName}</Badge>
-                        </TableCell>
-                        <TableCell>
-                          <div className="truncate max-w-[360px]" title={t.title}>
-                            {t.title}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge className={cn('text-white', priorityColors[t.priority])}>
-                            {t.priority}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>{formatRelativeTime(t.createdAt)}</TableCell>
-                        <TableCell>
-                          <SlaCountdownInline createdAt={t.createdAt} />
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Button
-                            size="sm"
-                            onClick={() => {
-                              setActiveTicket(t)
-                              setShowModal(true)
-                            }}
-                          >
-                            Provide Estimate
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    )
-                  })
-                )}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {isLoading ? (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center text-muted-foreground">
+                        Loading...
+                      </TableCell>
+                    </TableRow>
+                  ) : pageTickets.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center text-muted-foreground">
+                        No tickets found
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    pageTickets.map((t) => {
+                      const overdue = isOverdue(t.createdAt)
+                      const projectName = getProjectName(t.project)
+                      return (
+                        <TableRow key={t.id} className={cn(overdue && 'bg-red-50')}>
+                          <TableCell>
+                            <Link href={`/tickets/${t.id}`} className="font-medium hover:underline">
+                              {t.ticketNumber || '—'}
+                            </Link>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline">{projectName}</Badge>
+                          </TableCell>
+                          <TableCell>
+                            <div className="truncate max-w-[360px]" title={t.title}>
+                              {t.title}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <PriorityBadge priority={t.priority} />
+                          </TableCell>
+                          <TableCell>{formatRelativeTime(t.createdAt)}</TableCell>
+                          <TableCell>
+                            <SlaCountdownInline createdAt={t.createdAt} />
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <Button
+                              size="sm"
+                              onClick={() => {
+                                setActiveTicket(t)
+                                setShowModal(true)
+                              }}
+                            >
+                              Provide Estimate
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      )
+                    })
+                  )}
+                </TableBody>
+              </Table>
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -372,9 +366,7 @@ export default function EstimationQueuePage() {
                       </CardTitle>
                       <div className="flex gap-2 mt-2">
                         <Badge variant="outline">{projectName}</Badge>
-                        <Badge className={cn('text-white', priorityColors[t.priority])}>
-                          {t.priority}
-                        </Badge>
+                        <PriorityBadge priority={t.priority} />
                       </div>
                     </div>
                     <div className="text-sm text-muted-foreground">
